@@ -46,4 +46,6 @@ local builtin = require('telescope.builtin')
 -- /~~~>[ Bufferline ]<--------------------------\
 
     keymap.set( 'n' , '<tab>,' , ':tabprev<Return>' , opts )
-    keymap.set( 'n' , '<tab>.' , ':tabnext<Return>' , opts ) 
+    keymap.set( 'n' , '<tab>.' , ':tabnext<Return>' , opts )
+
+

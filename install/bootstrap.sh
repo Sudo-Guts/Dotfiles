@@ -98,7 +98,7 @@ ask_yes_no() {
 # -----------------------------------------------------------------------------
 
 # common.sh: curl, git, wget, unzip, timedatectl, etc.
-run_installer "common"
+#run_installer "common"
 
 # nvim.sh: Neovim y plugins
 run_installer "nvim"
