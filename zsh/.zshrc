@@ -111,7 +111,7 @@ export ZSH="$HOME/.oh-my-zsh"
     
     PR_HBAR="-"
 
-PROMPT='$(LH)\
+    PROMPT='$(LH)\
 %F{magenta}[%f $(ghost_icon) %F{magenta}]%f\
 %F{magenta}[%f %F{cyan}%/%f %F{magenta}]%f\
 $(BAR)\
@@ -119,7 +119,7 @@ $(BAR)\
 
 $(LL)$(arrow)'
 
-RPROMPT='%F{magenta}[%f $(GITIF)$(git_prompt_info)$(git_prompt_status) %F{magenta}]%f$(RL)'
+    RPROMPT='%F{magenta}[%f $(GITIF)$(git_prompt_info)$(git_prompt_status) %F{magenta}]%f$(RL)'
 
 # /~~~>[ Alias ]<------------------------------\
 
@@ -134,4 +134,32 @@ export RISCV=$HOME/riscv-lab/riscv
 export RISCV="/opt/riscv"
 export PATH="$RISCV/bin:$PATH"
 
-#[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+# /~~~>[ Xilinx ]<------------------------------\
+
+ise() {
+    echo "Iniciando Xilinx ISE 14.7..."
+    bash -c "source /opt/Xilinx/14.7/ISE_DS/settings64.sh && ise"
+}
+
+digilent() {
+    if [ -z "$1" ]; then
+        echo "Error: Debes proporcionar la ruta al archivo .bit"
+        echo "Uso: digilent /ruta/al/archivo.bit"
+        return 1
+    fi
+
+    local BIT_FILE="${1:A}"
+
+    if [ ! -f "$BIT_FILE" ]; then
+        echo "Error: El archivo '$BIT_FILE' no existe."
+        return 1
+    fi
+    
+    bash -c "
+        echo '🔌 Detectando tarjeta Nexys 3...' && \
+        djtgcfg init -d Nexys3 && \
+        echo '🚀 Programando FPGA con '$BIT_FILE'...' && \
+        djtgcfg prog -d Nexys3 -i 0 -f '$BIT_FILE'
+    "
+}
+

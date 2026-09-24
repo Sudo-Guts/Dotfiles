@@ -112,6 +112,9 @@ run_installer "kitty"
 # docker.sh: Docker
 run_installer "docker"
 
+# vhri.sh - Herramientas Verilog/VHDL
+run_installer "vhri"
+
 # fonts.sh: Nerd Fonts
 run_installer "fonts"
 

@@ -44,10 +44,6 @@ WORKDIR="/tmp/riscv_build"
 mkdir -p "$WORKDIR"
 cd "$WORKDIR"
 
-sudo apt-get install ghdl
-sudo apt-get install gtkwave
-sudo apt install iverilog
-
 # -----------------------------------------------------------------------------
 # 2. Dependencias del sistema
 # -----------------------------------------------------------------------------
