@@ -45,6 +45,11 @@ export PATH="$HOME/.local/xPacks/@xpack-dev-tools/riscv-none-elf-gcc/latest/bin:
 export RISCV="/opt/riscv"
 export PATH="$RISCV/bin:$PATH"
 
+# ============================================================
+# Kitty
+# ============================================================
+
+export PATH="$HOME/.local/kitty.app/bin:$PATH"
 
 # ============================================================
 # Prompt
