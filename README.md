@@ -28,7 +28,7 @@ Mis dotfiles personales para configurar rápidamente un entorno de desarrollo en
 
 ```bash
 # Clona el repositorio en ~/.dotfiles
-git clone https://github.com/Sudo-Guts/Dotfiles
+git clone https://github.com/Sudo-Guts/.dotfiles
 
 # Entra en la carpeta
 cd ~/.dotfiles
