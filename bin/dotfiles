@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# Resolver también ~/.local/bin/dotfiles antes de localizar la librería.
+entry="$(realpath -e -- "${BASH_SOURCE[0]}")"
+source "$(dirname -- "$entry")/../lib/common.sh"
+
+usage() {
+    cat <<'HELP'
+Uso: dotfiles <comando> [opciones]
+
+  install   Instala lo que falta y aplica los enlaces gestionados.
+  update    Sincroniza el upstream y actualiza los componentes seleccionados.
+  link      Solo respalda y enlaza las configuraciones y este comando.
+  doctor    Comprueba enlaces y herramientas instaladas.
+  check     Comprueba sintaxis y ShellCheck; --nvim añade plugins y parsers.
+
+Opciones de install y update:
+  --with-riscv     Toolchain bare-metal, GDB multiarch y QEMU.
+  --with-docker    Docker, sin cambiar los grupos del usuario.
+  --with-gnome     Atajo Ctrl+T para Kitty dentro de GNOME.
+  --change-shell   Solo install: cambia el shell predeterminado a Zsh.
+
+La instalación base incluye C/C++, Python, Verilog/SystemVerilog y VHDL.
+Los destinos sustituidos se conservan en <destino>.backup.XXXXXX/original.
+HELP
+}
+
+command_name="${1:-help}"
+(( $# == 0 )) || shift
+original_args=("$@")
+with_riscv=0
+with_docker=0
+with_gnome=0
+change_shell=0
+
+case "$command_name" in
+    help|--help|-h) usage; exit 0 ;;
+    doctor) (( $# == 0 )) || die "doctor no admite opciones."; exec bash "$DOTFILES_ROOT/bin/doctor.sh" ;;
+    check) exec bash "$DOTFILES_ROOT/bin/check.sh" "$@" ;;
+    link) (( $# == 0 )) || die "link no admite opciones." ;;
+    install|update)
+        for arg in "$@"; do
+            case "$arg" in
+                --with-riscv) with_riscv=1 ;;
+                --with-docker) with_docker=1 ;;
+                --with-gnome) with_gnome=1 ;;
+                --change-shell)
+                    [[ "$command_name" == install ]] || die "--change-shell solo se usa con install."
+                    change_shell=1 ;;
+                --help|-h) usage; exit 0 ;;
+                *) die "Opción desconocida: $arg" ;;
+            esac
+        done
+        ;;
+    *) die "Comando desconocido: $command_name. Usa dotfiles help." ;;
+esac
+
+if (( EUID == 0 )) && [[ "${DOTFILES_ALLOW_ROOT:-0}" != 1 ]]; then
+    die "Ejecuta dotfiles como usuario normal, sin sudo."
+fi
+
+source "$DOTFILES_ROOT/lib/links.sh"
+if [[ "$command_name" == link ]]; then
+    dotfiles_links_apply
+    log "Enlaces listos."
+    exit 0
+fi
+
+require_command git
+source "$DOTFILES_ROOT/lib/state.sh"
+dotfiles_state_load
+dotfiles_state_lock
+head="$(dotfiles_git_head)"
+if [[ "$command_name" == update && -z "${DOTFILES_UPDATE_APPLY_COMMIT:-}" ]]; then
+    source "$DOTFILES_ROOT/lib/update.sh"
+    dotfiles_update_sync "${original_args[@]}"
+fi
+if [[ "$command_name" == update ]]; then
+    [[ "${DOTFILES_UPDATE_REPO:-}" == "$DOTFILES_ROOT" && "${DOTFILES_UPDATE_APPLY_COMMIT:-}" == "$head" ]] || die "Reinicio de actualización inválido."
+    export DOTFILES_UPDATE=1
+else
+    export DOTFILES_UPDATE=0
+fi
+dotfiles_git_clean
+dotfiles_state_guard "$head"
+(( with_riscv )) && DOTFILES_WITH_RISCV=1
+(( with_docker )) && DOTFILES_WITH_DOCKER=1
+(( with_gnome )) && DOTFILES_WITH_GNOME=1
+DOTFILES_PENDING_COMMIT="$head"
+dotfiles_state_write
+
+# Un único índice APT durante esta ejecución, compartido por los módulos.
+work="$(mktemp -d)"
+trap 'rm -rf -- "$work"' EXIT
+export DOTFILES_APT_STAMP="$work/apt-refreshed"
+dotfiles_links_apply
+
+for module in base git zsh kitty nvim cpp python hdl fonts treesitter-cli; do
+    log "Instalando/comprobando: $module"
+    bash "$DOTFILES_ROOT/setup/modules/$module.sh"
+done
+
+if (( DOTFILES_WITH_RISCV )); then bash "$DOTFILES_ROOT/setup/modules/riscv.sh"; fi
+if (( DOTFILES_WITH_DOCKER )); then bash "$DOTFILES_ROOT/setup/modules/docker.sh"; fi
+if (( DOTFILES_WITH_GNOME )); then bash "$DOTFILES_ROOT/setup/modules/gnome.sh"; fi
+bash "$DOTFILES_ROOT/setup/modules/nvim-tools.sh"
+
+if (( change_shell )); then
+    require_command zsh
+    chsh -s "$(command -v zsh)"
+fi
+[[ "$(dotfiles_git_head)" == "$head" ]] || die "El commit cambió durante la instalación."
+dotfiles_git_clean
+DOTFILES_DOCTOR_ALLOW_PENDING=1 bash "$DOTFILES_ROOT/bin/doctor.sh"
+DOTFILES_APPLIED_COMMIT="$head"
+DOTFILES_PENDING_COMMIT=""
+dotfiles_state_write
+log "Instalación/actualización terminada. Abre una terminal nueva para aplicar los cambios."

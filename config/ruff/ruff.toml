@@ -1,0 +1,5 @@
+line-length = 111
+indent-width = 4
+
+[format]
+indent-style = "space"
