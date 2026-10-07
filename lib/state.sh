@@ -82,8 +82,38 @@ dotfiles_state_guard() {
     local target="$1" previous
     for previous in "$DOTFILES_APPLIED_COMMIT" "$DOTFILES_PENDING_COMMIT"; do
         [[ -n "$previous" ]] || continue
-        git -C "$DOTFILES_ROOT" cat-file -e "$previous^{commit}" 2>/dev/null || die "No se puede verificar el commit aplicado $previous; falta historial Git."
+        git -C "$DOTFILES_ROOT" cat-file -e "$previous^{commit}" 2>/dev/null ||
+            die "No se puede verificar el commit aplicado o pendiente $previous; falta historial Git. Si es un clon superficial, recupera su historial. Si cambiaste a un repositorio con otro historial, usa: bash bin/dotfiles install --migrate-state."
         git -C "$DOTFILES_ROOT" merge-base --is-ancestor "$previous" "$target" ||
             die "Esta revisión no contiene el último commit aplicado o pendiente. Usa una rama que lo incluya."
     done
+}
+
+# La migración se solicita únicamente con install --migrate-state. El estado
+# anterior se respalda antes de comenzar; install registrará el nuevo intento
+# pendiente y solo lo marcará como aplicado cuando termine correctamente.
+dotfiles_state_migrate() {
+    local target="$1" previous backup needs_migration=0
+    for previous in "$DOTFILES_APPLIED_COMMIT" "$DOTFILES_PENDING_COMMIT"; do
+        [[ -n "$previous" ]] || continue
+        if ! git -C "$DOTFILES_ROOT" cat-file -e "$previous^{commit}" 2>/dev/null ||
+           ! git -C "$DOTFILES_ROOT" merge-base --is-ancestor "$previous" "$target"; then
+            needs_migration=1
+        fi
+    done
+    if (( needs_migration == 0 )); then
+        log "El estado ya es compatible con esta revisión; no necesita migración."
+        return 0
+    fi
+
+    backup="$(umask 077; mktemp -- "$DOTFILES_STATE_DIR/install.state.backup.XXXXXX")" ||
+        die "No se pudo crear el respaldo del estado; no se migró."
+    if ! cp -- "$DOTFILES_STATE_FILE" "$backup"; then
+        rm -f -- "$backup"
+        die "No se pudo respaldar el estado; no se migró."
+    fi
+    log "Estado anterior respaldado en $backup"
+    DOTFILES_APPLIED_COMMIT=""
+    DOTFILES_PENDING_COMMIT=""
+    log "Migrando al nuevo historial; se conservan los componentes opcionales elegidos."
 }

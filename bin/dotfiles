@@ -20,6 +20,8 @@ Opciones de install y update:
   --with-docker    Docker, sin cambiar los grupos del usuario.
   --with-gnome     Atajo Ctrl+T para Kitty dentro de GNOME.
   --change-shell   Solo install: cambia el shell predeterminado a Zsh.
+  --migrate-state  Solo install: respalda el estado de otro historial Git
+                   y conserva los componentes opcionales elegidos.
 
 La instalación base incluye C/C++, Python, Verilog/SystemVerilog y VHDL.
 Los destinos sustituidos se conservan en <destino>.backup.XXXXXX/original.
@@ -33,6 +35,7 @@ with_riscv=0
 with_docker=0
 with_gnome=0
 change_shell=0
+migrate_state=0
 
 case "$command_name" in
     help|--help|-h) usage; exit 0 ;;
@@ -48,6 +51,9 @@ case "$command_name" in
                 --change-shell)
                     [[ "$command_name" == install ]] || die "--change-shell solo se usa con install."
                     change_shell=1 ;;
+                --migrate-state)
+                    [[ "$command_name" == install ]] || die "--migrate-state solo se usa con install."
+                    migrate_state=1 ;;
                 --help|-h) usage; exit 0 ;;
                 *) die "Opción desconocida: $arg" ;;
             esac
@@ -83,6 +89,7 @@ else
     export DOTFILES_UPDATE=0
 fi
 dotfiles_git_clean
+if (( migrate_state )); then dotfiles_state_migrate "$head"; fi
 dotfiles_state_guard "$head"
 (( with_riscv )) && DOTFILES_WITH_RISCV=1
 (( with_docker )) && DOTFILES_WITH_DOCKER=1
@@ -113,7 +120,10 @@ fi
 [[ "$(dotfiles_git_head)" == "$head" ]] || die "El commit cambió durante la instalación."
 dotfiles_git_clean
 DOTFILES_DOCTOR_ALLOW_PENDING=1 bash "$DOTFILES_ROOT/bin/doctor.sh"
+# Variables leídas por dotfiles_state_write, definido en lib/state.sh.
+# shellcheck disable=SC2034
 DOTFILES_APPLIED_COMMIT="$head"
+# shellcheck disable=SC2034
 DOTFILES_PENDING_COMMIT=""
 dotfiles_state_write
 log "Instalación/actualización terminada. Abre una terminal nueva para aplicar los cambios."

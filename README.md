@@ -14,7 +14,7 @@ Configuración personal para un entorno de desarrollo en Debian y Ubuntu. Incluy
 Requiere Git e Internet. Ejecuta el instalador como usuario normal; puede pedir permisos para instalar paquetes.
 
 ```bash
-git clone https://github.com/Sudo-Guts/.dotfiles.git ~/.dotfiles
+git clone https://github.com/Sudo-Guts/Dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 bash bin/dotfiles install
 ```
@@ -30,6 +30,26 @@ dotfiles install --with-gnome
 ```
 
 El shell predeterminado solo cambia si se solicita con `--change-shell`.
+
+### Si ya usabas el repositorio anterior
+
+Este repositorio empieza con un historial Git nuevo. El estado de una instalación
+anterior puede impedir `install` porque su commit ya no existe aquí. En el clon
+del nuevo repositorio, ejecuta una sola vez:
+
+```bash
+bash bin/dotfiles install --migrate-state
+```
+
+La opción respalda el estado anterior en
+`${XDG_STATE_HOME:-~/.local/state}/dotfiles/install.state.backup.XXXXXX` y conserva
+los opcionales RISC-V, Docker y GNOME seleccionados. El nuevo commit solo queda
+registrado como aplicado al terminar. Si falla, corrige el error y repite `install`.
+`update` mantiene la protección frente a revisiones antiguas; la migración nunca
+se hace automáticamente. El repositorio debe estar sin cambios locales.
+
+Si `~/.dotfiles` ya existe, consérvalo y clona este repositorio en otra carpeta;
+ejecuta el comando anterior dentro del nuevo clon.
 
 ## Comandos
 
