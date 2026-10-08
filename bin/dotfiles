@@ -16,6 +16,7 @@ Uso: dotfiles <comando> [opciones]
   check     Comprueba sintaxis y ShellCheck; --nvim añade plugins y parsers.
 
 Opciones de install y update:
+  --with-avr       AVR-GCC, AVR-LibC, Binutils AVR y AVRDUDE.
   --with-riscv     Toolchain bare-metal, GDB multiarch y QEMU.
   --with-docker    Docker, sin cambiar los grupos del usuario.
   --with-gnome     Atajo Ctrl+T para Kitty dentro de GNOME.
@@ -39,6 +40,7 @@ with_docker=0
 with_gnome=0
 with_apache=0
 with_ssh=0
+with_avr=0
 change_shell=0
 migrate_state=0
 
@@ -50,6 +52,7 @@ case "$command_name" in
     install|update)
         for arg in "$@"; do
             case "$arg" in
+                --with-avr) with_avr=1 ;;
                 --with-riscv) with_riscv=1 ;;
                 --with-docker) with_docker=1 ;;
                 --with-gnome) with_gnome=1 ;;
@@ -103,6 +106,7 @@ dotfiles_state_guard "$head"
 (( with_gnome )) && DOTFILES_WITH_GNOME=1
 (( with_apache )) && DOTFILES_WITH_APACHE=1
 (( with_ssh )) && DOTFILES_WITH_SSH=1
+(( with_avr )) && DOTFILES_WITH_AVR=1
 DOTFILES_PENDING_COMMIT="$head"
 dotfiles_state_write
 
@@ -122,6 +126,7 @@ if (( DOTFILES_WITH_DOCKER )); then bash "$DOTFILES_ROOT/setup/modules/docker.sh
 if (( DOTFILES_WITH_GNOME )); then bash "$DOTFILES_ROOT/setup/modules/gnome.sh"; fi
 if (( DOTFILES_WITH_APACHE )); then bash "$DOTFILES_ROOT/setup/modules/apache.sh"; fi
 if (( DOTFILES_WITH_SSH )); then bash "$DOTFILES_ROOT/setup/modules/ssh.sh"; fi
+if (( DOTFILES_WITH_AVR )); then bash "$DOTFILES_ROOT/setup/modules/avr.sh"; fi
 bash "$DOTFILES_ROOT/setup/modules/nvim-tools.sh"
 
 if (( change_shell )); then

@@ -1,7 +1,12 @@
 local M = {}
 local tasks = require("config.nvim.tasks")
 
-M.targets = { host = "PC Linux", tiva = "Tiva / ARM bare-metal", riscv = "RISC-V bare-metal" }
+M.targets = {
+  host = "PC Linux",
+  tiva = "Tiva / ARM bare-metal",
+  riscv = "RISC-V bare-metal",
+  avr = "AVR / ATmega bare-metal",
+}
 
 local function arguments(value)
   assert(type(value) == "table" and vim.islist(value), "args debe ser una lista JSON")
@@ -28,6 +33,9 @@ local function inferred_target(root)
   }) do
     if has(root, name) then
       local text = table.concat(vim.fn.readfile(root .. "/" .. name), "\n"):lower()
+      if text:find("avr%-gcc") or text:find("avr%-g%+%+") then
+        return "avr"
+      end
       if text:find("riscv[%w%-]*unknown%-elf") or text:find("riscv[%w%-]*none%-elf") then
         return "riscv"
       end
@@ -53,7 +61,7 @@ function M.profile(root)
     build_dir = "build",
     build_target = "",
   }, data)
-  assert(M.targets[profile.target], "target debe ser host, tiva o riscv")
+  assert(M.targets[profile.target], "target debe ser host, tiva, riscv o avr")
   for _, key in ipairs({ "cwd", "build_dir", "build_target" }) do
     assert(type(profile[key]) == "string" and not profile[key]:find("[%z\r\n]"), key .. " inválido")
   end
@@ -117,7 +125,7 @@ function M.validate_program(path)
     or (architecture:match("^arm") and 40)
   assert(
     native and info.machine == native,
-    "Este ELF usa otra arquitectura; el firmware Tiva/RISC-V se ejecuta en su hardware o emulador"
+    "Este ELF usa otra arquitectura; el firmware AVR/Tiva/RISC-V se ejecuta en su hardware o emulador"
   )
   assert(vim.fn.executable(path) == 1, "El archivo no tiene permiso de ejecución: " .. path)
   return path
@@ -187,7 +195,7 @@ function M.choose(root, done)
   assert(not tasks.is_running(root), "Detén el proceso con Espacio rx antes de cambiar el programa")
   local profile = M.profile(root)
   local kinds = { profile.target }
-  for _, kind in ipairs({ "host", "tiva", "riscv" }) do
+  for _, kind in ipairs({ "host", "tiva", "riscv", "avr" }) do
     if kind ~= profile.target then
       kinds[#kinds + 1] = kind
     end

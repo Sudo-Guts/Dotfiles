@@ -17,18 +17,19 @@ dotfiles_state_load() {
     DOTFILES_WITH_GNOME=0
     DOTFILES_WITH_APACHE=0
     DOTFILES_WITH_SSH=0
+    DOTFILES_WITH_AVR=0
     [[ -f "$DOTFILES_STATE_FILE" ]] || return 0
     while IFS='=' read -r key value || [[ -n "$key" ]]; do
         [[ -n "$key" && ! ${seen[$key]+yes} ]] || die "Estado incompleto o duplicado: $key"
         seen[$key]=1
         case "$key" in
             schema)
-                [[ "$value" == 1 || "$value" == 2 ]] || die "Versión de estado no soportada."
+                [[ "$value" == 1 || "$value" == 2 || "$value" == 3 ]] || die "Versión de estado no soportada."
                 schema="$value" ;;
             applied_commit|pending_commit)
                 [[ -z "$value" || "$value" =~ ^[[:xdigit:]]{40}$ || "$value" =~ ^[[:xdigit:]]{64}$ ]] || die "Commit inválido en el estado."
                 if [[ "$key" == applied_commit ]]; then DOTFILES_APPLIED_COMMIT="$value"; else DOTFILES_PENDING_COMMIT="$value"; fi ;;
-            riscv|docker|gnome|apache|ssh)
+            riscv|docker|gnome|apache|ssh|avr)
                 [[ "$value" == 0 || "$value" == 1 ]] || die "Componente inválido en el estado: $key"
                 case "$key" in
                     riscv) DOTFILES_WITH_RISCV="$value" ;;
@@ -36,6 +37,7 @@ dotfiles_state_load() {
                     gnome) DOTFILES_WITH_GNOME="$value" ;;
                     apache) DOTFILES_WITH_APACHE="$value" ;;
                     ssh) DOTFILES_WITH_SSH="$value" ;;
+                    avr) DOTFILES_WITH_AVR="$value" ;;
                 esac ;;
             *) die "Campo de estado desconocido: $key" ;;
         esac
@@ -45,8 +47,11 @@ dotfiles_state_load() {
     done
     if [[ "$schema" == 1 ]]; then
         (( ${#seen[@]} == 6 )) || die "Campos incompatibles con la versión de estado."
-    else
+    elif [[ "$schema" == 2 ]]; then
         [[ ${seen[apache]+yes} && ${seen[ssh]+yes} ]] || die "El estado está incompleto; no se modificó."
+        (( ${#seen[@]} == 8 )) || die "Campos incompatibles con la versión de estado."
+    else
+        [[ ${seen[apache]+yes} && ${seen[ssh]+yes} && ${seen[avr]+yes} ]] || die "El estado está incompleto; no se modificó."
     fi
 }
 
@@ -69,9 +74,9 @@ dotfiles_state_lock() {
 dotfiles_state_write() {
     local temporary
     temporary="$(umask 077; mktemp -- "$DOTFILES_STATE_DIR/.install.state.XXXXXX")"
-    if ! printf 'schema=2\napplied_commit=%s\npending_commit=%s\nriscv=%s\ndocker=%s\ngnome=%s\napache=%s\nssh=%s\n' \
+    if ! printf 'schema=3\napplied_commit=%s\npending_commit=%s\nriscv=%s\ndocker=%s\ngnome=%s\napache=%s\nssh=%s\navr=%s\n' \
         "$DOTFILES_APPLIED_COMMIT" "$DOTFILES_PENDING_COMMIT" "$DOTFILES_WITH_RISCV" \
-        "$DOTFILES_WITH_DOCKER" "$DOTFILES_WITH_GNOME" "$DOTFILES_WITH_APACHE" "$DOTFILES_WITH_SSH" > "$temporary"; then
+        "$DOTFILES_WITH_DOCKER" "$DOTFILES_WITH_GNOME" "$DOTFILES_WITH_APACHE" "$DOTFILES_WITH_SSH" "$DOTFILES_WITH_AVR" > "$temporary"; then
         rm -f -- "$temporary"
         die "No se pudo guardar el estado."
     fi

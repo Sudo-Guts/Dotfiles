@@ -31,7 +31,16 @@ elif [[ "${DOTFILES_DOCTOR_ALLOW_PENDING:-0}" != 1 ]]; then
     fi
 fi
 log "Commit aplicado: ${DOTFILES_APPLIED_COMMIT:-ninguno}"
-log "Opcionales: RISC-V=$DOTFILES_WITH_RISCV Docker=$DOTFILES_WITH_DOCKER GNOME=$DOTFILES_WITH_GNOME Apache=$DOTFILES_WITH_APACHE SSH=$DOTFILES_WITH_SSH"
+log "Opcionales: RISC-V=$DOTFILES_WITH_RISCV Docker=$DOTFILES_WITH_DOCKER GNOME=$DOTFILES_WITH_GNOME Apache=$DOTFILES_WITH_APACHE SSH=$DOTFILES_WITH_SSH AVR=$DOTFILES_WITH_AVR"
+if (( DOTFILES_WITH_AVR )); then
+    for cmd in avr-gcc avr-objcopy avr-size avr-objdump avrdude; do
+        check_command "$cmd"
+    done
+    if command -v avr-gcc >/dev/null &&
+       ! printf '#include <avr/io.h>\n' | avr-gcc -mmcu=atmega328p -E -x c - >/dev/null 2>&1; then
+        pending "AVR-LibC incompleta: avr/io.h para ATmega328P no se pudo procesar."
+    fi
+fi
 if (( DOTFILES_WITH_APACHE )); then check_command apache2ctl /usr/sbin/apache2ctl; fi
 if (( DOTFILES_WITH_SSH )); then check_command sshd /usr/sbin/sshd; fi
 if (( DOTFILES_WITH_RISCV )); then

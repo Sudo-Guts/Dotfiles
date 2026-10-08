@@ -15,6 +15,8 @@ for _, name in ipairs({
   "riscv32-unknown-elf-g++",
   "arm-none-eabi-gcc",
   "arm-none-eabi-g++",
+  "avr-gcc",
+  "avr-g++",
 }) do
   local path = vim.fn.exepath(name)
   if path ~= "" and not vim.tbl_contains(M.clangd_query_drivers, path) then

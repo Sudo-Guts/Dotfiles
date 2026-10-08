@@ -251,6 +251,9 @@ function M.panel()
           or "pendiente; usa rg"
         )
       status[#status + 1] = "Preparar con Bear recompila usando make -B; no ejecuta make clean."
+      if profile.target == "avr" then
+        status[#status + 1] = "AVR: rm ejecuta size, disasm o flash según tu Makefile."
+      end
     end
     status[#status + 1] = ""
     local executables = ({
@@ -258,6 +261,9 @@ function M.panel()
       verilog = { "iverilog", "vvp", "verible-verilog-ls", "gtkwave" },
       vhdl = { "ghdl", "vhdl_ls", "gtkwave" },
     })[language]
+    if language == "cpp" and cpp.profile(root).target == "avr" then
+      vim.list_extend(executables, { "avr-gcc", "avr-objcopy", "avr-size", "avr-objdump", "avrdude" })
+    end
     for _, executable in ipairs(executables) do
       status[#status + 1] = executable
         .. ": "
