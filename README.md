@@ -21,6 +21,10 @@ bash bin/dotfiles install
 
 Abre una terminal nueva al terminar. Si el instalador reemplaza una configuración existente, guarda una copia de respaldo junto al archivo original. No ejecuta una actualización general del sistema.
 
+La preparación de Neovim usa cachés temporales para evitar bloqueos de Tree-sitter
+dejados por una ejecución interrumpida. Las elimina al terminar o fallar;
+plugins, herramientas y parsers permanecen en sus rutas de datos habituales.
+
 Para añadir componentes opcionales:
 
 ```bash

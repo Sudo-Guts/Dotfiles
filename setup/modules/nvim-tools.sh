@@ -35,6 +35,13 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/common.sh"
 require_command nvim
 require_command tree-sitter
 
+# Tree-sitter 0.27 deja un bloqueo vacío si su proceso se interrumpe. Cada
+# Neovim de preparación usa su propia caché para evitar bloqueos y descargas
+# compartidas con otros editores. XDG_DATA_HOME conserva plugins y parsers.
+cache_home="$(mktemp -d -- "${TMPDIR:-/tmp}/dotfiles-nvim-cache.XXXXXX")"
+trap 'rm -rf -- "$cache_home"' EXIT
+cache_home="$(realpath -e -- "$cache_home")"
+
 
 # ============================================================
 # Restore Neovim Plugins
@@ -50,7 +57,7 @@ require_command tree-sitter
 
 log "Restaurando plugins de Neovim..."
 
-nvim \
+XDG_CACHE_HOME="$cache_home/restore" nvim \
     --headless \
     "+Lazy! restore" \
     "+qa"
@@ -69,7 +76,8 @@ nvim \
 
 log "Instalando herramientas de desarrollo de Neovim..."
 
-DOTFILES_TOOLS_SCRIPT="$DOTFILES_ROOT/setup/nvim-tools.lua" \
+XDG_CACHE_HOME="$cache_home/tools" \
+    DOTFILES_TOOLS_SCRIPT="$DOTFILES_ROOT/setup/nvim-tools.lua" \
     DOTFILES_NVIM_CHECK_SCRIPT="$DOTFILES_ROOT/setup/nvim-doctor.lua" \
     nvim \
         --headless \
