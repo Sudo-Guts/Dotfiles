@@ -7,7 +7,7 @@ Configuración personal para un entorno de desarrollo en Debian y Ubuntu. Incluy
 - Configuración de Zsh y Kitty.
 - Neovim con herramientas para C/C++, Python, Verilog/SystemVerilog y VHDL.
 - Desde Neovim puedes compilar y ejecutar proyectos C/C++, depurar C/C++ y Python, y simular proyectos HDL.
-- Opciones de instalación para RISC-V, Docker e integración con GNOME.
+- Opciones de instalación para RISC-V, Docker, GNOME, Apache y OpenSSH.
 
 ## Instalación
 
@@ -27,9 +27,21 @@ Para añadir componentes opcionales:
 dotfiles install --with-riscv
 dotfiles install --with-docker
 dotfiles install --with-gnome
+dotfiles install --with-apache --with-ssh
 ```
 
 El shell predeterminado solo cambia si se solicita con `--change-shell`.
+
+Apache y OpenSSH son opcionales e independientes. Se instalan mediante APT y
+su selección se conserva para los siguientes `install` y `update`; omitir una
+opción después no desinstala el componente. El estado anterior se adapta
+automáticamente, sin volver a usar `--migrate-state`.
+
+APT puede activar estos servicios al instalarlos. Según su configuración, pueden
+aceptar conexiones de red (puertos predeterminados: HTTP 80 y SSH 22). Los módulos
+conservan tus sitios, permisos de `/var/www`, autenticación y claves existentes,
+y dejan las reglas del firewall bajo tu control. `doctor` comprueba que estén
+disponibles los ejecutables seleccionados; no prueba una conexión de red.
 
 ### Si ya usabas el repositorio anterior
 
@@ -43,7 +55,7 @@ bash bin/dotfiles install --migrate-state
 
 La opción respalda el estado anterior en
 `${XDG_STATE_HOME:-~/.local/state}/dotfiles/install.state.backup.XXXXXX` y conserva
-los opcionales RISC-V, Docker y GNOME seleccionados. El nuevo commit solo queda
+los componentes opcionales seleccionados. El nuevo commit solo queda
 registrado como aplicado al terminar. Si falla, corrige el error y repite `install`.
 `update` mantiene la protección frente a revisiones antiguas; la migración nunca
 se hace automáticamente. El repositorio debe estar sin cambios locales.

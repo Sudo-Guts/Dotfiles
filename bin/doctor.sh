@@ -3,7 +3,10 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/common.sh"
 failures=0
 pending() { log "$*"; failures=$((failures+1)); }
 check_command() {
-    if command -v "$1" >/dev/null; then log "OK $1: $(command -v "$1")"
+    local binary
+    binary="$(command -v "$1" 2>/dev/null || true)"
+    if [[ -z "$binary" && -n "${2:-}" && -x "$2" ]]; then binary="$2"; fi
+    if [[ -n "$binary" ]]; then log "OK $1: $binary"
     else pending "FALTA $1"; fi
 }
 source "$DOTFILES_ROOT/lib/links.sh"
@@ -28,7 +31,9 @@ elif [[ "${DOTFILES_DOCTOR_ALLOW_PENDING:-0}" != 1 ]]; then
     fi
 fi
 log "Commit aplicado: ${DOTFILES_APPLIED_COMMIT:-ninguno}"
-log "Opcionales: RISC-V=$DOTFILES_WITH_RISCV Docker=$DOTFILES_WITH_DOCKER GNOME=$DOTFILES_WITH_GNOME"
+log "Opcionales: RISC-V=$DOTFILES_WITH_RISCV Docker=$DOTFILES_WITH_DOCKER GNOME=$DOTFILES_WITH_GNOME Apache=$DOTFILES_WITH_APACHE SSH=$DOTFILES_WITH_SSH"
+if (( DOTFILES_WITH_APACHE )); then check_command apache2ctl /usr/sbin/apache2ctl; fi
+if (( DOTFILES_WITH_SSH )); then check_command sshd /usr/sbin/sshd; fi
 if (( DOTFILES_WITH_RISCV )); then
     for cmd in riscv64-unknown-elf-gcc riscv64-unknown-elf-objdump gdb-multiarch qemu-system-riscv32; do
         check_command "$cmd"

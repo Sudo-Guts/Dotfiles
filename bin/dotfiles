@@ -19,12 +19,15 @@ Opciones de install y update:
   --with-riscv     Toolchain bare-metal, GDB multiarch y QEMU.
   --with-docker    Docker, sin cambiar los grupos del usuario.
   --with-gnome     Atajo Ctrl+T para Kitty dentro de GNOME.
+  --with-apache    Servidor web Apache mediante APT.
+  --with-ssh       Servidor OpenSSH mediante APT.
   --change-shell   Solo install: cambia el shell predeterminado a Zsh.
   --migrate-state  Solo install: respalda el estado de otro historial Git
                    y conserva los componentes opcionales elegidos.
 
 La instalación base incluye C/C++, Python, Verilog/SystemVerilog y VHDL.
 Los destinos sustituidos se conservan en <destino>.backup.XXXXXX/original.
+APT puede activar los servicios Apache y SSH al instalarlos.
 HELP
 }
 
@@ -34,6 +37,8 @@ original_args=("$@")
 with_riscv=0
 with_docker=0
 with_gnome=0
+with_apache=0
+with_ssh=0
 change_shell=0
 migrate_state=0
 
@@ -48,6 +53,8 @@ case "$command_name" in
                 --with-riscv) with_riscv=1 ;;
                 --with-docker) with_docker=1 ;;
                 --with-gnome) with_gnome=1 ;;
+                --with-apache) with_apache=1 ;;
+                --with-ssh) with_ssh=1 ;;
                 --change-shell)
                     [[ "$command_name" == install ]] || die "--change-shell solo se usa con install."
                     change_shell=1 ;;
@@ -94,6 +101,8 @@ dotfiles_state_guard "$head"
 (( with_riscv )) && DOTFILES_WITH_RISCV=1
 (( with_docker )) && DOTFILES_WITH_DOCKER=1
 (( with_gnome )) && DOTFILES_WITH_GNOME=1
+(( with_apache )) && DOTFILES_WITH_APACHE=1
+(( with_ssh )) && DOTFILES_WITH_SSH=1
 DOTFILES_PENDING_COMMIT="$head"
 dotfiles_state_write
 
@@ -111,6 +120,8 @@ done
 if (( DOTFILES_WITH_RISCV )); then bash "$DOTFILES_ROOT/setup/modules/riscv.sh"; fi
 if (( DOTFILES_WITH_DOCKER )); then bash "$DOTFILES_ROOT/setup/modules/docker.sh"; fi
 if (( DOTFILES_WITH_GNOME )); then bash "$DOTFILES_ROOT/setup/modules/gnome.sh"; fi
+if (( DOTFILES_WITH_APACHE )); then bash "$DOTFILES_ROOT/setup/modules/apache.sh"; fi
+if (( DOTFILES_WITH_SSH )); then bash "$DOTFILES_ROOT/setup/modules/ssh.sh"; fi
 bash "$DOTFILES_ROOT/setup/modules/nvim-tools.sh"
 
 if (( change_shell )); then
