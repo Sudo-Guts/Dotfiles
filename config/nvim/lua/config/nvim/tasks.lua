@@ -369,6 +369,38 @@ function M.process_status(root)
   return process_log.status(root)
 end
 
+-- Abrir salidas debajo del código sin reducir la altura del explorador.
+local function open_output(buf, enter)
+  local current, fallback = vim.api.nvim_get_current_win(), nil
+  local function is_editor(win)
+    local config = vim.api.nvim_win_get_config(win)
+    if config.relative ~= "" then
+      return false
+    end
+    local options = vim.bo[vim.api.nvim_win_get_buf(win)]
+    return options.buftype == "" and options.filetype ~= "neo-tree"
+  end
+  local anchor = is_editor(current) and current or nil
+  if not anchor then
+    for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      if is_editor(win) then
+        anchor = win
+        break
+      end
+      if vim.api.nvim_win_get_config(win).relative == "" then
+        fallback = fallback or win
+      end
+    end
+  end
+  if not anchor then
+    vim.api.nvim_win_call(assert(fallback), function()
+      vim.cmd("belowright vnew")
+      anchor = vim.api.nvim_get_current_win()
+    end)
+  end
+  return vim.api.nvim_open_win(buf, enter, { split = "below", win = anchor, height = 14 })
+end
+
 function M.log(root, opts)
   opts = opts or {}
   root = root or M.root()
@@ -394,7 +426,7 @@ function M.log(root, opts)
   vim.b[buf].dotfiles_project = root
   vim.b[buf].dotfiles_language = process_log.language(root)
   if opened then
-    win = vim.api.nvim_open_win(buf, false, { split = "below", win = -1, height = 14 })
+    win = open_output(buf, false)
   end
   vim.keymap.set("n", "<leader>rx", function()
     M.cancel(root)
@@ -433,12 +465,11 @@ function M.terminal()
       vim.api.nvim_win_close(win, false)
       return
     end
-    vim.cmd("botright 14split")
-    vim.api.nvim_win_set_buf(0, terminal_buf)
+    open_output(terminal_buf, true)
   else
     local cwd = M.root()
-    vim.cmd("botright 14new")
-    terminal_buf = vim.api.nvim_get_current_buf()
+    terminal_buf = vim.api.nvim_create_buf(true, false)
+    open_output(terminal_buf, true)
     vim.fn.jobstart(vim.o.shell, { term = true, cwd = cwd })
   end
   vim.cmd.startinsert()
@@ -543,7 +574,7 @@ function M.run_terminal(command, cwd, opts)
     vim.api.nvim_set_current_win(log_win)
     vim.cmd.enew()
   else
-    vim.cmd("botright 14new")
+    open_output(vim.api.nvim_create_buf(true, false), true)
   end
   local buf = vim.api.nvim_get_current_buf()
   vim.bo.bufhidden, vim.bo.swapfile = "hide", false
