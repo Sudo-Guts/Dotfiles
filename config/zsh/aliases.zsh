@@ -55,7 +55,7 @@ alias gca='git commit --amend'
 # Push / Pull
 # ------------------------------------------------------------
 
-alias gp='git push'
+alias gp='gpush'
 alias gpf='git push --force-with-lease'
 alias gpl='git pull'
 alias gpr='git pull --rebase'
