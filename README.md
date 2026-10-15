@@ -9,6 +9,11 @@ Configuración personal para un entorno de desarrollo en Debian y Ubuntu. Incluy
 - Desde Neovim puedes compilar y ejecutar proyectos C/C++, depurar C/C++ y Python, y simular proyectos HDL.
 - Opciones de instalación para AVR/ATmega, RISC-V, Docker, GNOME, Apache y OpenSSH.
 
+En C/C++, el estilo predeterminado usa cuatro espacios y alinea los `break;`
+directos de cada caso con `case` o `default`. Se aplica al guardar o con
+`Espacio cf`; un `.clang-format` o `_clang-format` del proyecto tiene prioridad.
+La alineación de `break;` es un ajuste de Neovim, no de `clang-format` al ejecutarlo solo.
+
 ## Instalación
 
 Requiere Git e Internet. Ejecuta el instalador como usuario normal; puede pedir permisos para instalar paquetes.
