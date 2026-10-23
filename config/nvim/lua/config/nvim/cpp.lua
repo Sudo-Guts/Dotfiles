@@ -4,6 +4,7 @@ local tasks = require("config.nvim.tasks")
 M.targets = {
   host = "PC Linux",
   tiva = "Tiva / ARM bare-metal",
+  stm32 = "STM32 / CubeIDE · USB DFU",
   riscv = "RISC-V bare-metal",
   avr = "AVR / ATmega bare-metal",
 }
@@ -24,6 +25,12 @@ function M.path(root, path)
 end
 
 local function inferred_target(root)
+  if has(root, ".cproject") then
+    local text = table.concat(vim.fn.readfile(root .. "/.cproject"), "\n")
+    if text:find("com.st.stm32cube", 1, true) then
+      return "stm32"
+    end
+  end
   for _, name in ipairs({
     "compile_commands.json",
     "build/compile_commands.json",
@@ -61,7 +68,7 @@ function M.profile(root)
     build_dir = "build",
     build_target = "",
   }, data)
-  assert(M.targets[profile.target], "target debe ser host, tiva, riscv o avr")
+  assert(M.targets[profile.target], "target debe ser host, tiva, stm32, riscv o avr")
   for _, key in ipairs({ "cwd", "build_dir", "build_target" }) do
     assert(type(profile[key]) == "string" and not profile[key]:find("[%z\r\n]"), key .. " inválido")
   end
@@ -76,6 +83,14 @@ function M.profile(root)
     "program inválido"
   )
   arguments(profile.args)
+  if profile.target == "stm32" then
+    profile.configuration = profile.configuration or "Debug"
+    assert(
+      type(profile.configuration) == "string" and profile.configuration ~= ""
+        and not profile.configuration:find("[%z\r\n]"),
+      "configuration debe ser un nombre de configuración CubeIDE"
+    )
+  end
   return profile
 end
 
@@ -85,6 +100,7 @@ function M.store(root, profile)
     :wait()
   assert(result.code == 0, result.stderr)
   tasks.write(root .. "/.nvim/cpp.json", vim.split(vim.trim(result.stdout), "\n"))
+  vim.api.nvim_exec_autocmds("User", { pattern = "DotfilesProjectChanged" })
 end
 
 -- Inspeccionar la cabecera sin ejecutar el archivo ni depender de su extensión.
@@ -125,7 +141,7 @@ function M.validate_program(path)
     or (architecture:match("^arm") and 40)
   assert(
     native and info.machine == native,
-    "Este ELF usa otra arquitectura; el firmware AVR/Tiva/RISC-V se ejecuta en su hardware o emulador"
+    "Este ELF usa otra arquitectura; el firmware AVR/Tiva/STM32/RISC-V se ejecuta en su hardware o emulador"
   )
   assert(vim.fn.executable(path) == 1, "El archivo no tiene permiso de ejecución: " .. path)
   return path
@@ -175,6 +191,9 @@ end
 function M.compile(root, done)
   tasks.save(root)
   local profile = M.profile(root)
+  if profile.target == "stm32" then
+    return require("config.nvim.stm32").build(root, false, done)
+  end
   local command
   if has(root, "Makefile") or has(root, "makefile") then
     command = { "make" }
@@ -195,7 +214,7 @@ function M.choose(root, done)
   assert(not tasks.is_running(root), "Detén el proceso con Espacio rx antes de cambiar el programa")
   local profile = M.profile(root)
   local kinds = { profile.target }
-  for _, kind in ipairs({ "host", "tiva", "riscv", "avr" }) do
+  for _, kind in ipairs({ "host", "tiva", "stm32", "riscv", "avr" }) do
     if kind ~= profile.target then
       kinds[#kinds + 1] = kind
     end
@@ -211,6 +230,10 @@ function M.choose(root, done)
     end
     tasks.safe(function()
       profile.target = kind
+      if kind == "stm32" then
+        require("config.nvim.stm32").configure(root)
+        return
+      end
       if kind ~= "host" then
         M.store(root, profile)
         vim.notify(

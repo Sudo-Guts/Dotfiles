@@ -51,10 +51,16 @@ end
 function M.cpp_prepare(root)
   tasks.save(root)
   local profile = cpp.profile(root)
+  if profile.target == "stm32" then
+    return require("config.nvim.stm32").build(root, true)
+  end
   if has(root, "Makefile") or has(root, "makefile") then
     assert(vim.fn.executable("bear") == 1, "Falta bear; ejecuta dotfiles install")
     vim.ui.input(
-      { prompt = "Objetivo Make para indexar (vacío = predeterminado): ", default = profile.build_target },
+      {
+        prompt = "Objetivo Make para indexar (vacío = predeterminado): ",
+        default = profile.build_target,
+      },
       function(target)
         if target == nil then
           return
@@ -94,7 +100,14 @@ function M.cpp_prepare(root)
   end
   assert(has(root, "CMakeLists.txt"), "No hay Makefile ni CMakeLists.txt en " .. root)
   tasks.run(
-    { "cmake", "-S", root, "-B", cpp.path(root, profile.build_dir), "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON" },
+    {
+      "cmake",
+      "-S",
+      root,
+      "-B",
+      cpp.path(root, profile.build_dir),
+      "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+    },
     root,
     function()
       local database = cpp.path(root, profile.build_dir) .. "/compile_commands.json"
@@ -119,7 +132,11 @@ function M.action(name)
     end
     if language == "cpp" then
       assert(
-        name == "prepare" or name == "compile" or name == "execute" or name == "choose_program",
+        name == "prepare"
+          or name == "compile"
+          or name == "execute"
+          or name == "choose_program"
+          or name == "flash",
         "Esta acción requiere un archivo HDL"
       )
       if name == "prepare" then
@@ -127,7 +144,14 @@ function M.action(name)
       elseif name == "compile" then
         M.cpp_compile(root)
       elseif name == "choose_program" then
-        cpp.choose(root)
+        if cpp.profile(root).target == "stm32" then
+          require("config.nvim.stm32").configure(root)
+        else
+          cpp.choose(root)
+        end
+      elseif name == "flash" then
+        assert(cpp.profile(root).target == "stm32", "La carga USB DFU requiere un proyecto STM32")
+        require("config.nvim.stm32").flash(root)
       else
         cpp.execute(root)
       end
@@ -139,7 +163,7 @@ function M.action(name)
 end
 
 function M.setup_keymaps()
-  local keys = { "rp", "rg", "rc", "rt", "rn", "re", "rs", "rw", "rl", "rx", "rm" }
+  local keys = { "rp", "rg", "rc", "rt", "rn", "re", "rs", "rw", "rl", "rx", "rm", "rf" }
   local function attach(buf)
     for _, key in ipairs(keys) do
       pcall(vim.keymap.del, "n", "<leader>" .. key, { buffer = buf })
@@ -158,7 +182,15 @@ function M.setup_keymaps()
     }
     if language == "cpp" then
       actions.rt = { "choose_program", icons.label("target", "Elegir programa y destino") }
-      actions.re = { "execute", icons.label("run", "Compilar y ejecutar en PC") }
+      local root = vim.b[buf].dotfiles_project or tasks.cpp_root(buf)
+      local ok, profile = pcall(cpp.profile, root or "")
+      if ok and profile.target == "stm32" then
+        actions.rt = { "choose_program", icons.label("target", "Configuración STM32CubeIDE") }
+        actions.rf = { "flash", icons.label("save", "Grabar y verificar STM32 por USB DFU") }
+        actions.rm = nil
+      else
+        actions.re = { "execute", icons.label("run", "Compilar y ejecutar en PC") }
+      end
     else
       actions.rt = { "choose_testbench", icons.label("target", "Elegir testbench y top") }
       actions.rn = { "create_testbench", icons.label("file", "Nuevo testbench desde puertos") }
@@ -180,10 +212,20 @@ function M.setup_keymaps()
   for _, key in ipairs(keys) do
     pcall(vim.keymap.del, "n", "<leader>" .. key)
   end
-  vim.api.nvim_create_autocmd("FileType", {
-    group = vim.api.nvim_create_augroup("GutsProjectKeys", { clear = true }),
+  local group = vim.api.nvim_create_augroup("GutsProjectKeys", { clear = true })
+  vim.api.nvim_create_autocmd({ "FileType", "BufEnter" }, {
+    group = group,
     callback = function(event)
       attach(event.buf)
+    end,
+  })
+  vim.api.nvim_create_autocmd("User", {
+    group = group,
+    pattern = "DotfilesProjectChanged",
+    callback = function()
+      for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        attach(buf)
+      end
     end,
   })
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
@@ -236,23 +278,40 @@ function M.panel()
       local profile = cpp.profile(root)
       status[#status + 1] = ""
       status[#status + 1] = "Destino: " .. cpp.targets[profile.target]
-      status[#status + 1] = "Programa: " .. (profile.program or "sin seleccionar; usa rt")
-      status[#status + 1] = "Argumentos: " .. vim.json.encode(profile.args)
-      status[#status + 1] = "Directorio de ejecución: " .. profile.cwd
-      status[#status + 1] = "Objetivo de compilación: "
-        .. (profile.build_target ~= "" and profile.build_target or "predeterminado")
+      if profile.target == "stm32" then
+        status[#status + 1] = "Firmware y directorio de salida: definidos por .cproject"
+      else
+        status[#status + 1] = "Programa: " .. (profile.program or "sin seleccionar; usa rt")
+        status[#status + 1] = "Argumentos: " .. vim.json.encode(profile.args)
+        status[#status + 1] = "Directorio de ejecución: " .. profile.cwd
+        status[#status + 1] = "Objetivo de compilación: "
+          .. (profile.build_target ~= "" and profile.build_target or "predeterminado")
+      end
       status[#status + 1] = "Perfil: .nvim/cpp.json"
-      status[#status + 1] = profile.target == "host" and "re: compila y ejecuta en una terminal con teclado."
-        or "Firmware: usa los objetivos de Make para hardware/emulación."
+      if profile.target ~= "stm32" then
+        status[#status + 1] = profile.target == "host"
+            and "re: compila y ejecuta en una terminal con teclado."
+          or "Firmware: usa los objetivos de Make para hardware/emulación."
+      end
       status[#status + 1] = "Índice: compile_commands.json (o build/compile_commands.json)"
       status[#status + 1] = "Base de compilación: "
         .. (
           (has(root, "compile_commands.json") or has(root, "build/compile_commands.json")) and "disponible"
           or "pendiente; usa rg"
         )
-      status[#status + 1] = "Preparar con Bear recompila usando make -B; no ejecuta make clean."
+      if profile.target ~= "stm32" then
+        status[#status + 1] = "Preparar con Bear recompila usando make -B; no ejecuta make clean."
+      end
       if profile.target == "avr" then
         status[#status + 1] = "AVR: rm ejecuta size, disasm o flash según tu Makefile."
+      elseif profile.target == "stm32" then
+        status[#status + 1] = "CubeIDE: "
+          .. profile.configuration
+          .. "; rc genera el HEX; rf graba por USB DFU."
+        status[#status + 1] =
+          "rg recompila la configuración con CubeIDE y Bear; conserva los flags del proyecto."
+        status[#status + 1] =
+          "USB DFU: carga y verificación; depuración por SWD requiere una sonda."
       end
     end
     status[#status + 1] = ""
@@ -262,7 +321,18 @@ function M.panel()
       vhdl = { "ghdl", "vhdl_ls", "gtkwave" },
     })[language]
     if language == "cpp" and cpp.profile(root).target == "avr" then
-      vim.list_extend(executables, { "avr-gcc", "avr-objcopy", "avr-size", "avr-objdump", "avrdude" })
+      vim.list_extend(
+        executables,
+        { "avr-gcc", "avr-objcopy", "avr-size", "avr-objdump", "avrdude" }
+      )
+    end
+    if language == "cpp" and cpp.profile(root).target == "stm32" then
+      local tools = require("config.nvim.stm32").tools()
+      for _, name in ipairs({ "cubeide", "gcc", "objcopy", "programmer" }) do
+        status[#status + 1] = name
+          .. ": "
+          .. ((tools[name] or "") ~= "" and tools[name] or "falta; revisa README")
+      end
     end
     for _, executable in ipairs(executables) do
       status[#status + 1] = executable
@@ -333,11 +403,28 @@ function M.panel()
       }
     else
       table.insert(items, 2, {
-        text = icons.label("target", "[rt] Elegir programa, argumentos y destino"),
+        text = icons.label(
+          "target",
+          cpp.profile(root).target == "stm32" and "[rt] Configuración STM32CubeIDE"
+            or "[rt] Elegir programa, argumentos y destino"
+        ),
         action = function()
-          cpp.choose(root)
+          M.action("choose_program")
         end,
       })
+      if cpp.profile(root).target == "stm32" then
+        for index = #items, 1, -1 do
+          if items[index].action == tasks.make then
+            table.remove(items, index)
+          end
+        end
+        table.insert(items, 4, {
+          text = icons.label("save", "[rf] Compilar, grabar y verificar USB DFU"),
+          action = function()
+            M.action("flash")
+          end,
+        })
+      end
       if cpp.profile(root).target == "host" then
         table.insert(items, 4, {
           text = icons.label("run", "[re] Compilar y ejecutar en PC"),
@@ -350,7 +437,13 @@ function M.panel()
         text = icons.label("settings", "Editar .nvim/cpp.json"),
         action = function()
           if not has(root, ".nvim/cpp.json") then
-            cpp.store(root, cpp.profile(root))
+            local profile = cpp.profile(root)
+            cpp.store(
+              root,
+              profile.target == "stm32"
+                  and { version = 1, target = "stm32", configuration = profile.configuration }
+                or profile
+            )
           end
           vim.cmd.edit(vim.fn.fnameescape(root .. "/.nvim/cpp.json"))
         end,

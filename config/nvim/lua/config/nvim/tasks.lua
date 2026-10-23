@@ -60,7 +60,7 @@ end
 function M.cpp_root(bufnr)
   return vim.fs.root(
     bufnr or 0,
-    { ".nvim", "compile_commands.json", ".clangd", "Makefile", "makefile", "CMakeLists.txt", ".git" }
+    { ".nvim", ".cproject", "compile_commands.json", ".clangd", "Makefile", "makefile", "CMakeLists.txt", ".git" }
   )
 end
 

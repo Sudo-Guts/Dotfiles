@@ -37,3 +37,8 @@ path=(
 export PATH
 
 unset MASON_BIN
+
+# Ajustes de esta computadora fuera del repositorio (por ejemplo, rutas de ST).
+if [[ -r "$HOME/.zshrc.local" ]]; then
+    source "$HOME/.zshrc.local"
+fi

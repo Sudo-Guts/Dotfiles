@@ -24,4 +24,13 @@ for _, name in ipairs({
   end
 end
 
+-- CubeIDE conserva su propia versión de GNU Arm; se autorizan solo rutas concretas.
+local stm32 = require("config.nvim.stm32").tools()
+for _, name in ipairs({ "gcc", "g++" }) do
+  local path = stm32[name]
+  if path and path ~= "" and not vim.tbl_contains(M.clangd_query_drivers, path) then
+    M.clangd_query_drivers[#M.clangd_query_drivers + 1] = path
+  end
+end
+
 return M
