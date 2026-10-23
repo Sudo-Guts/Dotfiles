@@ -114,6 +114,26 @@ ejecuta el comando anterior dentro del nuevo clon.
 | `dotfiles check` | Comprobar sintaxis y configuración |
 | `dotfiles link` | Aplicar los enlaces de configuración |
 
+### Aplicaciones STM32 desde Zsh
+
+| Comando | Acción |
+|---|---|
+| `cubeide` | Abrir STM32CubeIDE como usuario normal |
+| `cubeprog` | Abrir STM32CubeProgrammer con `sudo` |
+
+Las aplicaciones deben estar instaladas. `cubeide` busca `stm32cubeide` en el
+`PATH`, en `/opt/st/stm32cubeide*/` y en `~/st/stm32cubeide*/`.
+`cubeprog` utiliza
+`~/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32CubeProgrammer`.
+Ambos conservan la salida en la terminal y aceptan argumentos adicionales.
+
+Si tu instalación está en otra ubicación, puedes indicar el ejecutable completo:
+
+```zsh
+STM32_CUBEIDE_GUI="/ruta/STM32CubeIDE/stm32cubeide" cubeide
+STM32_PROGRAMMER_GUI="/ruta/STM32CubeProgrammer/bin/STM32CubeProgrammer" cubeprog
+```
+
 ## Organización
 
 - `config/`: archivos de Zsh, Kitty, Neovim y Ruff.
