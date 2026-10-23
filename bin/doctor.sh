@@ -31,7 +31,10 @@ elif [[ "${DOTFILES_DOCTOR_ALLOW_PENDING:-0}" != 1 ]]; then
     fi
 fi
 log "Commit aplicado: ${DOTFILES_APPLIED_COMMIT:-ninguno}"
-log "Opcionales: RISC-V=$DOTFILES_WITH_RISCV Docker=$DOTFILES_WITH_DOCKER GNOME=$DOTFILES_WITH_GNOME Apache=$DOTFILES_WITH_APACHE SSH=$DOTFILES_WITH_SSH AVR=$DOTFILES_WITH_AVR"
+log "Opcionales: RISC-V=$DOTFILES_WITH_RISCV Docker=$DOTFILES_WITH_DOCKER GNOME=$DOTFILES_WITH_GNOME Apache=$DOTFILES_WITH_APACHE SSH=$DOTFILES_WITH_SSH AVR=$DOTFILES_WITH_AVR STM32=$DOTFILES_WITH_STM32"
+if (( DOTFILES_WITH_STM32 )); then
+    python3 "$DOTFILES_ROOT/bin/stm32.py" doctor || pending "Herramientas STM32 incompletas."
+fi
 if (( DOTFILES_WITH_AVR )); then
     for cmd in avr-gcc avr-objcopy avr-size avr-objdump avrdude; do
         check_command "$cmd"

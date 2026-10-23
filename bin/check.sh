@@ -23,6 +23,10 @@ else
     printf 'Zsh no está instalado; se omite su comprobación de sintaxis.\n'
 fi
 
+if command -v python3 >/dev/null; then
+    python3 -c 'import ast, pathlib, sys; [ast.parse(p.read_text(), filename=str(p)) for p in pathlib.Path(sys.argv[1]).glob("*.py")]' "$repo/bin"
+fi
+
 if command -v nvim >/dev/null; then
     DOTFILES_CHECK_ROOT="$repo" nvim --clean --headless -c 'lua
         local ok, err = pcall(function()
