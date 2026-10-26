@@ -19,7 +19,7 @@ Opciones de install y update:
   --with-avr       AVR-GCC, AVR-LibC, Binutils AVR y AVRDUDE.
   --with-riscv     Toolchain bare-metal, GDB multiarch y QEMU.
   --with-docker    Docker, sin cambiar los grupos del usuario.
-  --with-gnome     Atajo Ctrl+T para Kitty dentro de GNOME.
+  --with-gnome     Alias de compatibilidad: la integración GNOME ya es automática.
   --with-apache    Servidor web Apache mediante APT.
   --with-ssh       Servidor OpenSSH mediante APT.
   --change-shell   Solo install: cambia el shell predeterminado a Zsh.
@@ -27,6 +27,7 @@ Opciones de install y update:
                    y conserva los componentes opcionales elegidos.
 
 La instalación base incluye C/C++, Python, Verilog/SystemVerilog y VHDL.
+En sesiones GNOME configura Ctrl+T para Kitty de forma automática.
 Serie se instala por defecto para explorar el grafo Git con glpick.
 Los destinos sustituidos se conservan en <destino>.backup.XXXXXX/original.
 APT puede activar los servicios Apache y SSH al instalarlos.
@@ -38,7 +39,6 @@ command_name="${1:-help}"
 original_args=("$@")
 with_riscv=0
 with_docker=0
-with_gnome=0
 with_apache=0
 with_ssh=0
 with_avr=0
@@ -56,7 +56,8 @@ case "$command_name" in
                 --with-avr) with_avr=1 ;;
                 --with-riscv) with_riscv=1 ;;
                 --with-docker) with_docker=1 ;;
-                --with-gnome) with_gnome=1 ;;
+                # Se mantiene por compatibilidad con comandos existentes.
+                --with-gnome) : ;;
                 --with-apache) with_apache=1 ;;
                 --with-ssh) with_ssh=1 ;;
                 --change-shell)
@@ -104,7 +105,9 @@ if (( migrate_state )); then dotfiles_state_migrate "$head"; fi
 dotfiles_state_guard "$head"
 (( with_riscv )) && DOTFILES_WITH_RISCV=1
 (( with_docker )) && DOTFILES_WITH_DOCKER=1
-(( with_gnome )) && DOTFILES_WITH_GNOME=1
+if [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]]; then
+    DOTFILES_WITH_GNOME=1
+fi
 (( with_apache )) && DOTFILES_WITH_APACHE=1
 (( with_ssh )) && DOTFILES_WITH_SSH=1
 (( with_avr )) && DOTFILES_WITH_AVR=1
@@ -117,14 +120,13 @@ trap 'rm -rf -- "$work"' EXIT
 export DOTFILES_APT_STAMP="$work/apt-refreshed"
 dotfiles_links_apply
 
-for module in base git serie zsh kitty nvim cpp python hdl fonts treesitter-cli; do
+for module in base git serie zsh kitty nvim cpp python hdl fonts treesitter-cli gnome; do
     log "Instalando/comprobando: $module"
     bash "$DOTFILES_ROOT/setup/modules/$module.sh"
 done
 
 if (( DOTFILES_WITH_RISCV )); then bash "$DOTFILES_ROOT/setup/modules/riscv.sh"; fi
 if (( DOTFILES_WITH_DOCKER )); then bash "$DOTFILES_ROOT/setup/modules/docker.sh"; fi
-if (( DOTFILES_WITH_GNOME )); then bash "$DOTFILES_ROOT/setup/modules/gnome.sh"; fi
 if (( DOTFILES_WITH_APACHE )); then bash "$DOTFILES_ROOT/setup/modules/apache.sh"; fi
 if (( DOTFILES_WITH_SSH )); then bash "$DOTFILES_ROOT/setup/modules/ssh.sh"; fi
 if (( DOTFILES_WITH_AVR )); then bash "$DOTFILES_ROOT/setup/modules/avr.sh"; fi
