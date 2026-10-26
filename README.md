@@ -8,7 +8,8 @@ Configuración personal para un entorno de desarrollo en Debian y Ubuntu. Incluy
 - Serie para explorar el grafo de ramas y commits desde la terminal con `glpick`.
 - Neovim con herramientas para C/C++, Python, Verilog/SystemVerilog y VHDL.
 - Desde Neovim puedes compilar y ejecutar proyectos C/C++, depurar C/C++ y Python, y simular proyectos HDL.
-- Opciones de instalación para AVR/ATmega, RISC-V, Docker, GNOME, Apache y OpenSSH.
+- Integración automática de Kitty con GNOME para abrir la terminal con `Ctrl+T`.
+- Opciones de instalación para AVR/ATmega, RISC-V, Docker, Apache y OpenSSH.
 
 En C/C++, el estilo predeterminado usa cuatro espacios y alinea los `break;`
 directos de cada caso con `case` o `default`. Se aplica al guardar o con
@@ -40,9 +41,14 @@ Para añadir componentes opcionales:
 dotfiles install --with-avr
 dotfiles install --with-riscv
 dotfiles install --with-docker
-dotfiles install --with-gnome
 dotfiles install --with-apache --with-ssh
 ```
+
+En sesiones GNOME, `dotfiles install` y `dotfiles update` configuran automáticamente
+el atajo `Ctrl+T` para abrir Kitty, sin borrar otros atajos personalizados ni
+duplicar su entrada. En otros escritorios se omite este paso; no se instala GNOME.
+La opción antigua `--with-gnome` sigue aceptándose por compatibilidad, pero ya
+no es necesaria.
 
 El shell predeterminado solo cambia si se solicita con `--change-shell`.
 
