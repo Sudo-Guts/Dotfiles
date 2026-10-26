@@ -2,7 +2,11 @@ return {
   "nvim-treesitter/nvim-treesitter",
   branch = "main",
   lazy = false,
-  build = ":TSUpdate",
+  -- Evita compilar varios parsers a la vez en equipos con poca RAM.
+  build = function()
+    local updated = require("nvim-treesitter").update(nil, { max_jobs = 1 }):wait(600000)
+    assert(updated, "No se pudieron actualizar todos los parsers de Treesitter")
+  end,
   config = function()
     require("nvim-treesitter").setup({ install_dir = vim.fn.stdpath("data") .. "/site" })
     vim.treesitter.language.register("systemverilog", { "verilog", "systemverilog" })

@@ -31,6 +31,9 @@ La preparación de Neovim usa cachés temporales para evitar bloqueos de Tree-si
 dejados por una ejecución interrumpida. Las elimina al terminar o fallar;
 plugins, herramientas y parsers permanecen en sus rutas de datos habituales.
 
+Los parsers de Treesitter se compilan de uno en uno, tanto durante la instalación
+como al actualizar el plugin desde Lazy, para reducir el consumo simultáneo de memoria.
+
 Para añadir componentes opcionales:
 
 ```bash
