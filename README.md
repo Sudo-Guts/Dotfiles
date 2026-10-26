@@ -5,6 +5,7 @@ Configuración personal para un entorno de desarrollo en Debian y Ubuntu. Incluy
 ## Qué incluye
 
 - Configuración de Zsh y Kitty.
+- Serie para explorar el grafo de ramas y commits desde la terminal con `glpick`.
 - Neovim con herramientas para C/C++, Python, Verilog/SystemVerilog y VHDL.
 - Desde Neovim puedes compilar y ejecutar proyectos C/C++, depurar C/C++ y Python, y simular proyectos HDL.
 - Opciones de instalación para AVR/ATmega, RISC-V, Docker, GNOME, Apache y OpenSSH.
@@ -113,6 +114,31 @@ ejecuta el comando anterior dentro del nuevo clon.
 | `dotfiles doctor` | Revisar enlaces y herramientas instaladas |
 | `dotfiles check` | Comprobar sintaxis y configuración |
 | `dotfiles link` | Aplicar los enlaces de configuración |
+
+### Grafo de Git desde la terminal
+
+Serie forma parte de la instalación predeterminada y de `dotfiles update`.
+Se descarga el binario oficial para Linux x86_64 o ARM64, se comprueban su
+SHA-256 y versión, y se instala en `~/.local/bin/serie`. Las versiones se
+administran en `setup/versions.sh`; `dotfiles doctor` comprueba Serie.
+
+Dentro de un repositorio Git, ejecuta:
+
+```zsh
+glpick
+```
+
+| Tecla | Acción |
+|---|---|
+| `↑` / `↓` o `j` / `k` | Recorrer los commits |
+| `Enter` | Consultar el detalle del commit |
+| `Tab` | Abrir la lista de referencias |
+| `/` | Buscar |
+| `q` | Regresar a la terminal |
+
+`glpick` acepta opciones de Serie, por ejemplo `glpick --max-count 500`.
+El grafo usa el protocolo gráfico de la terminal; ejecútalo en Kitty u otra
+[terminal compatible](https://lusingander.github.io/serie/getting-started/compatibility.html).
 
 ### Aplicaciones STM32 desde Zsh
 

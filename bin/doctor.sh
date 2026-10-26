@@ -13,7 +13,7 @@ source "$DOTFILES_ROOT/lib/links.sh"
 if ! dotfiles_links_check; then
     failures=$((failures + DOTFILES_LINK_FAILURES))
 fi
-for cmd in zsh nvim kitty git gh fzf rg fd gcc g++ make cmake clangd clang-format gdb bear shellcheck tree-sitter iverilog vvp ghdl gtkwave python3 node npm; do
+for cmd in zsh nvim kitty git gh serie fzf rg fd gcc g++ make cmake clangd clang-format gdb bear shellcheck tree-sitter iverilog vvp ghdl gtkwave python3 node npm; do
     check_command "$cmd"
 done
 
@@ -88,6 +88,10 @@ fi
 if command -v kitty >/dev/null; then
     current="$(kitty --version | awk '{print $2}')"
     binary_satisfies "$current" "$KITTY_MIN_VERSION" "$KITTY_VERSION" || pending "Kitty $current no cumple la versión requerida."
+fi
+if command -v serie >/dev/null; then
+    current="$(serie --version 2>/dev/null | awk '$1 == "serie" { print $2; exit }' || true)"
+    binary_satisfies "$current" "$SERIE_MIN_VERSION" "$SERIE_VERSION" || pending "Serie ${current:-desconocida} no cumple la versión requerida."
 fi
 if command -v tree-sitter >/dev/null; then
     current="$(tree-sitter --version | awk '{print $2}')"

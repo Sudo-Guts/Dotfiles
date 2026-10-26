@@ -452,30 +452,35 @@ function dotfiles_git_pick_branch() {
 
 
 # -----------------------------------------------------------------------------
-#   Uso: dotfiles_git_pick_commit
+#   Uso: dotfiles_git_pick_commit [opciones de Serie]
 # -----------------------------------------------------------------------------
 #
-#   Permite seleccionar un commit del historial mediante fzf.
+#   Abre el grafo interactivo de ramas y commits mediante Serie.
 #
-#   Muestra hasta 200 commits en formato resumido.
+#   Enter muestra el detalle del commit; Tab abre las referencias;
+#   / busca y q regresa a la terminal. Acepta opciones de Serie.
 #
-#   Al seleccionar un commit, ejecuta git show para consultar
-#   su informacion y los cambios asociados.
+#   Requiere una terminal compatible con imágenes, como Kitty.
 #
-#   No modifica el historial ni cambia de rama.
+#   La navegación del grafo no modifica el historial ni cambia de rama.
 #
 #   Requisitos:
 #       - git
-#       - fzf
+#       - serie: se instala por defecto con los dotfiles.
 #
 # -----------------------------------------------------------------------------
 
 function dotfiles_git_pick_commit() {
-    dotfiles_need fzf || return
+    dotfiles_need git || return
+    dotfiles_need serie || {
+        print -u2 -- "Ejecuta dotfiles install o dotfiles update para instalar Serie."
+        return 1
+    }
 
-    local line
+    command git rev-parse --git-dir >/dev/null 2>&1 || {
+        print -u2 -- "Ejecuta glpick dentro de un repositorio Git."
+        return 1
+    }
 
-    line=$( command git log --oneline -200 | fzf --prompt='Commit > ' ) || return
-
-    [[ -n "$line" ]] && command git show "${line%% *}"
+    command serie "$@"
 }

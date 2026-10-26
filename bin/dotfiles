@@ -27,6 +27,7 @@ Opciones de install y update:
                    y conserva los componentes opcionales elegidos.
 
 La instalación base incluye C/C++, Python, Verilog/SystemVerilog y VHDL.
+Serie se instala por defecto para explorar el grafo Git con glpick.
 Los destinos sustituidos se conservan en <destino>.backup.XXXXXX/original.
 APT puede activar los servicios Apache y SSH al instalarlos.
 HELP
@@ -116,7 +117,7 @@ trap 'rm -rf -- "$work"' EXIT
 export DOTFILES_APT_STAMP="$work/apt-refreshed"
 dotfiles_links_apply
 
-for module in base git zsh kitty nvim cpp python hdl fonts treesitter-cli; do
+for module in base git serie zsh kitty nvim cpp python hdl fonts treesitter-cli; do
     log "Instalando/comprobando: $module"
     bash "$DOTFILES_ROOT/setup/modules/$module.sh"
 done
