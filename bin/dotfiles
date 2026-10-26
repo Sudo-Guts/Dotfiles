@@ -23,7 +23,7 @@ Opciones de install y update:
   --with-apache    Servidor web Apache mediante APT.
   --with-ssh       Servidor OpenSSH mediante APT.
   --change-shell   Solo install: cambia el shell predeterminado a Zsh.
-  --migrate-state  Solo install: respalda el estado de otro historial Git
+  --migrate-state  Solo install: respalda el estado de otra revisión o historial
                    y conserva los componentes opcionales elegidos.
 
 La instalación base incluye C/C++, Python, Verilog/SystemVerilog y VHDL.

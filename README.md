@@ -105,6 +105,25 @@ se hace automáticamente. El repositorio debe estar sin cambios locales.
 Si `~/.dotfiles` ya existe, consérvalo y clona este repositorio en otra carpeta;
 ejecuta el comando anterior dentro del nuevo clon.
 
+### Estado compartido entre ramas
+
+Se admiten los formatos de estado 1 a 4. La selección `stm32` del formato 4
+se conserva al instalar o actualizar desde `main`, para seguir utilizándola
+en la rama de integración STM32.
+
+Si una versión anterior muestra `Versión de estado no soportada`, descarga
+primero la corrección con Git, porque `dotfiles update` lee el estado antes
+de sincronizar el repositorio. Desde `main`:
+
+```bash
+git pull --ff-only
+bash bin/dotfiles install --migrate-state
+```
+
+La migración respalda el estado cuando la revisión aplicada pertenece a una
+rama divergente o a otro historial y conserva los componentes opcionales.
+`dotfiles check` incluye pruebas de lectura, escritura y migración del estado.
+
 ## Comandos
 
 | Comando | Uso |

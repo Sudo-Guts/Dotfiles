@@ -7,7 +7,7 @@ repo="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
     exit 1
 }
 
-mapfile -d '' bash_files < <(find "$repo/bin" "$repo/lib" "$repo/setup" \
+mapfile -d '' bash_files < <(find "$repo/bin" "$repo/lib" "$repo/setup" "$repo/tests" \
     -type f \( -name '*.sh' -o -name dotfiles \) -print0)
 for file in "${bash_files[@]}"; do bash -n "$file"; done
 if command -v shellcheck >/dev/null; then
@@ -15,6 +15,8 @@ if command -v shellcheck >/dev/null; then
 else
     printf 'ShellCheck no está instalado; se omite ese análisis.\n'
 fi
+
+bash "$repo/tests/state.sh"
 
 if command -v zsh >/dev/null; then
     while IFS= read -r -d '' file; do zsh -n "$file"; done \
