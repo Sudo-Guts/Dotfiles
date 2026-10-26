@@ -30,6 +30,7 @@ help_text="$(bash "$cli" help)"
 [[ "$(bash "$cli" --help)" == "$help_text" ]] || fail '--help es diferente'
 [[ "$(bash "$cli" -h)" == "$help_text" ]] || fail '-h es diferente'
 [[ "$(bash "$cli" install --help)" == "$help_text" ]] || fail 'install --help es diferente'
+[[ "$help_text" == *"En sesiones GNOME configura Ctrl+T para Kitty de forma automática."* ]] || fail "Falta documentar la integración GNOME predeterminada"
 
 for option in --with-avr --with-riscv --with-docker --with-gnome --with-apache --with-ssh --change-shell --migrate-state; do
     [[ "$help_text" == *"$option"* ]] || fail "La ayuda no documenta $option"
