@@ -17,6 +17,7 @@ else
 fi
 
 bash "$repo/tests/state.sh"
+bash "$repo/tests/cli.sh"
 
 if command -v zsh >/dev/null; then
     while IFS= read -r -d '' file; do zsh -n "$file"; done \
