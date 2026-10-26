@@ -31,7 +31,8 @@ elif [[ "${DOTFILES_DOCTOR_ALLOW_PENDING:-0}" != 1 ]]; then
     fi
 fi
 log "Commit aplicado: ${DOTFILES_APPLIED_COMMIT:-ninguno}"
-log "Opcionales: RISC-V=$DOTFILES_WITH_RISCV Docker=$DOTFILES_WITH_DOCKER GNOME=$DOTFILES_WITH_GNOME Apache=$DOTFILES_WITH_APACHE SSH=$DOTFILES_WITH_SSH AVR=$DOTFILES_WITH_AVR"
+log "Opcionales: RISC-V=$DOTFILES_WITH_RISCV Docker=$DOTFILES_WITH_DOCKER Apache=$DOTFILES_WITH_APACHE SSH=$DOTFILES_WITH_SSH AVR=$DOTFILES_WITH_AVR"
+log "GNOME: integración automática cuando hay una sesión GNOME activa"
 if (( DOTFILES_WITH_AVR )); then
     for cmd in avr-gcc avr-objcopy avr-size avr-objdump avrdude; do
         check_command "$cmd"
@@ -54,7 +55,7 @@ if (( DOTFILES_WITH_DOCKER )); then
         docker compose version || pending "FALTA Docker Compose"
     fi
 fi
-if (( DOTFILES_WITH_GNOME )) && [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]]; then
+if [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]]; then
     shortcut='/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/guts-kitty/'
     schema='org.gnome.settings-daemon.plugins.media-keys'
     if ! command -v gsettings >/dev/null ||
