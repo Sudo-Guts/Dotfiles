@@ -31,9 +31,16 @@ protección de enlaces y respaldos sin mover las responsabilidades anteriores.
 
 ## Inventario de módulos
 
-Los nombres corresponden a los scripts existentes en `setup/modules/`.
-Esta tabla describe el comportamiento actual; no introduce otro manifiesto
-ejecutable ni modifica el orden de instalación.
+El manifiesto único de módulos es `setup/modules.conf`. Cada línea declara
+nombre, selección (`core`, `gnome` u `optional`), dependencias, comandos de
+`doctor` y paquetes APT, separados por `|`. Se lee como datos, sin `source`
+ni `eval`. Los instaladores consumen sus paquetes con `apt_install_module`.
+
+Las dependencias deben aparecer antes que sus consumidores y estar activas.
+El orden explícito evita ciclos y mantiene `nvim-tools` al final, después de
+instalar también los opcionales seleccionados. `lib/modules.sh` valida el
+manifiesto y comparte la selección entre el instalador y `doctor`.
+`setup/manifest.sh` sigue declarando los enlaces, una responsabilidad distinta.
 
 | Selección | Módulos | Responsabilidad y dependencias |
 |---|---|---|
@@ -57,9 +64,11 @@ ejecutable ni modifica el orden de instalación.
 `nvim-tools` obtiene la lista de herramientas de
 `config/nvim/lua/config/nvim/tools.lua`: Lua LS, StyLua, shfmt, Verible,
 VHDL LS, CodeLLDB, Pyright, Ruff y debugpy. Los parsers se declaran en
-`config/nvim/lua/config/nvim/parsers.lua`. Clangd, clang-format y ShellCheck
-proceden de APT. Estas responsabilidades deben conservarse al construir el
-manifiesto de módulos de la fase 2.
+`config/nvim/lua/config/nvim/parsers.lua`. Cada paquete Mason identifica el
+módulo al que pertenece: Neovim, C/C++, HDL o Python. El instalador comunica
+la selección a Neovim; fuera del instalador, las herramientas toman los módulos
+del núcleo del mismo manifiesto. Clangd, clang-format y ShellCheck proceden de
+APT. Las versiones de herramientas y plugins mantienen sus archivos existentes.
 
 Python 3 también ejecuta la integración GNOME y la serialización de perfiles
 de C/C++ y HDL desde Neovim. Node/npm ejecutan e instalan Pyright. No se
@@ -74,7 +83,7 @@ al núcleo ni que el instalador deba descargarlas.
 
 | Hallazgo | Evidencia | Decisión en esta fase |
 |---|---|---|
-| Paquetes APT repetidos | Git y fzf aparecen en `base` y otros módulos; Python/venv en `base` y `python` | Conservarlos: `apt_install` consulta el estado y comparte un índice APT por ejecución. Centralizar sus declaraciones en la fase 2 |
+| Paquetes APT repetidos | Git y fzf son requisitos de varios módulos; Python/venv también | Sus declaraciones están centralizadas en `modules.conf`. `apt_install` comprueba los instalados y registra los paquetes ya procesados durante cada ejecución para evitar trabajo repetido en `update` |
 | Posibles dependencias sobrantes | `wget` y el ejecutable `jq` no tienen llamadas directas identificadas en los scripts actuales; `gh --jq` es una opción de GitHub CLI | Registrar candidatos y revisar instaladores externos antes de eliminarlos |
 | Comprobación local de archivos | `has` en `cpp.lua` y `project.lua` realiza la misma consulta breve | Mantener los helpers locales; extraerlos por sí solos añadiría otra dependencia entre módulos |
 | Serialización de perfiles | `cpp.store` y `tasks.store_profile` utilizan `python3 -m json.tool` | Revisar una función compartida en la fase 3, conservando la diferencia entre el perfil C/C++ y los perfiles HDL combinados |
@@ -93,7 +102,7 @@ bash bin/dotfiles check
 ```
 
 El comando comprueba sintaxis Bash/Zsh y ejecuta las regresiones de estado,
-CLI, GNOME y enlaces. Las pruebas de enlaces usan una copia temporal de los
+CLI, GNOME, enlaces e instalación. Las pruebas de enlaces usan una copia temporal de los
 archivos gestionados y un directorio de usuario aislado. Cubren respaldos de
 archivos, directorios y enlaces rotos, rutas con espacios, un `XDG_CONFIG_HOME`
 externo al directorio de usuario, dos ejecuciones consecutivas, destinos
@@ -107,12 +116,33 @@ equivale a validar una instalación completa, LSP, parsers, depuración o
 hardware. `dotfiles check --nvim` y las pruebas de funcionamiento quedan
 para un entorno con Neovim y sus herramientas instaladas.
 
-## Siguientes fases
+## Fase 2: instalación compartida y repetible
 
-La fase 2 debe centralizar módulos y dependencias, conservando HDL y Python
-en el núcleo y los flags existentes. No se añadirán `--with-hdl` ni
-`--with-python`. La selección persistente de los opcionales y la compatibilidad
-con los estados anteriores deben protegerse con las pruebas de migración.
+- [x] Compartir módulos, dependencias, paquetes APT y comandos de diagnóstico mediante `setup/modules.conf`.
+- [x] Conservar HDL y Python en el núcleo y todos los flags existentes; no añadir `--with-hdl` ni `--with-python`.
+- [x] Seleccionar las herramientas Mason según el módulo al que pertenecen.
+- [x] Mantener el formato de estado 4 y la lectura de los formatos 1–4, incluida la selección STM32.
+- [x] Comprobar en `doctor` únicamente el núcleo, la integración GNOME activa y los opcionales seleccionados.
+- [x] Evitar paquetes APT repetidos, restauraciones de plugins completos y descargas redundantes de la clave de Docker.
+
+`install` conserva los paquetes disponibles. `update` reconcilia las versiones
+previstas para los componentes seleccionados, sin actualizar todo el sistema.
+El registro APT y sus archivos temporales duran una sola ejecución; no se usa
+una caché persistente para decidir que una instalación está completa.
+
+La preparación de Neovim comienza con una comprobación local en modo de solo
+lectura. Si está completo, termina sin restaurar plugins ni instalar herramientas.
+Si solo faltan herramientas o parsers, conserva los plugins verificados. Los
+errores persistentes siguen impidiendo marcar la instalación como terminada.
+
+`tests/install.py` prueba diez casos con Git local y sustitutos aislados: núcleo,
+opciones persistentes, estados antiguos, recuperación, actualización por avance
+rápido, validación del manifiesto, selección de `doctor`, APT y preparación de
+Neovim/Docker. No usa red ni servicios reales. `tests/tools.lua` comprueba
+selección, idempotencia y reconciliación de Mason con un registro simulado;
+`check` lo ejecuta cuando Neovim está disponible.
+
+## Siguientes fases
 
 La fase 3 debe revisar carga por lenguaje, versiones, parsers y recuperación
 del editor. Incluye alinear el formato predeterminado con el estándar de

@@ -39,6 +39,9 @@ done
 # El parser debe rechazar entradas inválidas sin iniciar instalaciones.
 expect_rejection 'Opción desconocida' install --with-unknown
 expect_rejection 'Opción desconocida en update' update --with-unknown
+expect_rejection 'Flag opcional vacío' install --with-
+expect_rejection 'HDL pertenece al núcleo' install --with-hdl
+expect_rejection 'Python pertenece al núcleo' install --with-python
 expect_rejection 'Cambio de shell en update' update --change-shell
 expect_rejection 'Migración en update' update --migrate-state
 expect_rejection 'Argumentos de doctor' doctor --with-avr

@@ -85,11 +85,7 @@ if [[ "$mode" == "system" ]]; then
 
     log "Instalando entorno RISC-V desde los repositorios del sistema..."
 
-    apt_install \
-        gcc-riscv64-unknown-elf \
-        binutils-riscv64-unknown-elf \
-        gdb-multiarch \
-        qemu-system-misc
+    apt_install_module riscv
 
     log "Toolchain RISC-V del sistema lista."
     log "Para RV32I usa: -march=rv32i -mabi=ilp32"

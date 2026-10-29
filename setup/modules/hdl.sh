@@ -30,10 +30,7 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/common.sh"
 
 log "Instalando herramientas HDL..."
 
-apt_install \
-    ghdl \
-    gtkwave \
-    iverilog
+apt_install_module hdl
 
 
 # ============================================================

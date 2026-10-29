@@ -35,9 +35,7 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/common.sh"
 # Installation
 # ============================================================
 
-apt_install \
-    git \
-    gh
+apt_install_module git
 
 
 # ============================================================

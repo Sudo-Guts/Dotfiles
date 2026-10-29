@@ -37,11 +37,7 @@ HELP
 command_name="${1:-help}"
 (( $# == 0 )) || shift
 original_args=("$@")
-with_riscv=0
-with_docker=0
-with_apache=0
-with_ssh=0
-with_avr=0
+requested_modules=()
 change_shell=0
 migrate_state=0
 
@@ -51,15 +47,15 @@ case "$command_name" in
     check) exec bash "$DOTFILES_ROOT/bin/check.sh" "$@" ;;
     link) (( $# == 0 )) || die "link no admite opciones." ;;
     install|update)
+        source "$DOTFILES_ROOT/lib/modules.sh"
         for arg in "$@"; do
             case "$arg" in
-                --with-avr) with_avr=1 ;;
-                --with-riscv) with_riscv=1 ;;
-                --with-docker) with_docker=1 ;;
                 # Se mantiene por compatibilidad con comandos existentes.
                 --with-gnome) : ;;
-                --with-apache) with_apache=1 ;;
-                --with-ssh) with_ssh=1 ;;
+                --with-*)
+                    module="${arg#--with-}"
+                    [[ "$module" =~ ^[a-z]+$ && "${DOTFILES_MODULE_KIND[$module]:-}" == optional ]] || die "Opción desconocida: $arg"
+                    requested_modules+=("$module") ;;
                 --change-shell)
                     [[ "$command_name" == install ]] || die "--change-shell solo se usa con install."
                     change_shell=1 ;;
@@ -103,14 +99,13 @@ fi
 dotfiles_git_clean
 if (( migrate_state )); then dotfiles_state_migrate "$head"; fi
 dotfiles_state_guard "$head"
-(( with_riscv )) && DOTFILES_WITH_RISCV=1
-(( with_docker )) && DOTFILES_WITH_DOCKER=1
+for module in "${requested_modules[@]}"; do
+    printf -v "DOTFILES_WITH_${module^^}" '%s' 1
+done
 if [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]]; then
     DOTFILES_WITH_GNOME=1
 fi
-(( with_apache )) && DOTFILES_WITH_APACHE=1
-(( with_ssh )) && DOTFILES_WITH_SSH=1
-(( with_avr )) && DOTFILES_WITH_AVR=1
+dotfiles_modules_select
 DOTFILES_PENDING_COMMIT="$head"
 dotfiles_state_write
 
@@ -118,19 +113,13 @@ dotfiles_state_write
 work="$(mktemp -d)"
 trap 'rm -rf -- "$work"' EXIT
 export DOTFILES_APT_STAMP="$work/apt-refreshed"
+export DOTFILES_APT_PACKAGES="$work/apt-packages"
 dotfiles_links_apply
 
-for module in base git serie zsh kitty nvim cpp python hdl fonts treesitter-cli gnome; do
+for module in "${DOTFILES_SELECTED_MODULES[@]}"; do
     log "Instalando/comprobando: $module"
     bash "$DOTFILES_ROOT/setup/modules/$module.sh"
 done
-
-if (( DOTFILES_WITH_RISCV )); then bash "$DOTFILES_ROOT/setup/modules/riscv.sh"; fi
-if (( DOTFILES_WITH_DOCKER )); then bash "$DOTFILES_ROOT/setup/modules/docker.sh"; fi
-if (( DOTFILES_WITH_APACHE )); then bash "$DOTFILES_ROOT/setup/modules/apache.sh"; fi
-if (( DOTFILES_WITH_SSH )); then bash "$DOTFILES_ROOT/setup/modules/ssh.sh"; fi
-if (( DOTFILES_WITH_AVR )); then bash "$DOTFILES_ROOT/setup/modules/avr.sh"; fi
-bash "$DOTFILES_ROOT/setup/modules/nvim-tools.sh"
 
 if (( change_shell )); then
     require_command zsh

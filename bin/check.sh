@@ -20,6 +20,7 @@ bash "$repo/tests/state.sh"
 bash "$repo/tests/cli.sh"
 bash "$repo/tests/gnome.sh"
 bash "$repo/tests/links.sh"
+python3 "$repo/tests/install.py"
 
 if command -v zsh >/dev/null; then
     while IFS= read -r -d '' file; do zsh -n "$file"; done \
@@ -38,9 +39,13 @@ if command -v nvim >/dev/null; then
             for _, file in ipairs(vim.fn.glob(root .. "/setup/*.lua", false, true)) do
                 assert(loadfile(file))
             end
+            for _, file in ipairs(vim.fn.glob(root .. "/tests/*.lua", false, true)) do
+                assert(loadfile(file))
+            end
         end)
         if not ok then print(err); vim.cmd("cquit 1") end
     ' +qa
+    DOTFILES_TEST_ROOT="$repo" nvim --clean --headless -l "$repo/tests/tools.lua"
 else
     printf 'Neovim no está instalado; se omite la comprobación de sintaxis Lua.\n'
 fi

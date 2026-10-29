@@ -32,10 +32,7 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/common.sh"
 # Dependencies
 # ============================================================
 
-apt_install \
-    zsh \
-    fzf \
-    git
+apt_install_module zsh
 
 
 # ============================================================

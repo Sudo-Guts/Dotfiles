@@ -2,7 +2,7 @@
 source "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/common.sh"
 
 # Node/npm ejecutan e instalan Pyright; las herramientas Python viven en Mason.
-apt_install python3 python3-venv nodejs npm
+apt_install_module python
 require_command python3
 require_command node
 require_command npm

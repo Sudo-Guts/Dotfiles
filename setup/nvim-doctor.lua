@@ -34,7 +34,7 @@ function M.check()
       print(item.name .. ": " .. item.version)
     end
   end
-  if vim.fn.executable("verible-verilog-format") == 0 then
+  if require("config.nvim.tools").enabled("hdl") and vim.fn.executable("verible-verilog-format") == 0 then
     failed[#failed + 1] = "verible-verilog-format ausente"
   end
   for _, lang in ipairs(require("config.nvim.parsers")) do

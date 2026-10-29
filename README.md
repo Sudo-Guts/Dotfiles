@@ -40,8 +40,10 @@ detecta GNOME y se omite en otros entornos; no instala el escritorio. La opción
 `--with-gnome` se conserva como alias de compatibilidad. HDL y Python forman
 parte del núcleo, por lo que no existen `--with-hdl` ni `--with-python`.
 
-El inventario de módulos, sus dependencias y la revisión de duplicaciones se
-documentan en [setup/README.md](setup/README.md).
+Los módulos, sus dependencias, los paquetes APT y los comandos de diagnóstico
+se declaran en `setup/modules.conf`. El instalador y `doctor` usan esa misma
+selección. El inventario y las reglas de mantenimiento se explican en
+[setup/README.md](setup/README.md).
 
 ## Instalación
 
@@ -61,6 +63,16 @@ plugins, herramientas y parsers permanecen en sus rutas de datos habituales.
 
 Los parsers de Treesitter se compilan de uno en uno, tanto durante la instalación
 como al actualizar el plugin desde Lazy, para reducir el consumo simultáneo de memoria.
+
+Al repetir `install`, se conservan los paquetes disponibles. Si Neovim ya tiene
+sus plugins, herramientas y parsers completos, una comprobación local evita
+restaurarlos o descargarlos de nuevo. Si solo faltan herramientas o parsers,
+se conservan los plugins que coinciden con el lockfile.
+
+`update` sincroniza la rama y aplica las versiones previstas por esa revisión.
+APT comprueba cada paquete seleccionado una sola vez por ejecución y comparte
+el refresco del índice; Docker lo vuelve a invalidar únicamente si cambia su
+configuración de repositorio. No se ejecuta una actualización general del sistema.
 
 Para añadir componentes opcionales:
 

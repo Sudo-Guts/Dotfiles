@@ -128,7 +128,11 @@ apt_install() {
 
     for package in "$@"; do
 
-        if ! dpkg-query \
+        if [[ -n "${DOTFILES_APT_PACKAGES:-}" && -f "$DOTFILES_APT_PACKAGES" ]] && grep -Fxq -- "$package" "$DOTFILES_APT_PACKAGES"; then
+            continue
+        fi
+
+        if [[ "$DOTFILES_UPDATE" == 1 ]] || ! dpkg-query \
             -W \
             -f='${Status}' \
             "$package" \
@@ -146,7 +150,7 @@ apt_install() {
     # Nothing to Install
     # --------------------------------------------------------
 
-    if (( ${#missing[@]} == 0 )) && [[ "$DOTFILES_UPDATE" != 1 ]]; then
+    if (( ${#missing[@]} == 0 )); then
         return 0
     fi
 
@@ -155,9 +159,6 @@ apt_install() {
     # Install Missing Packages
     # --------------------------------------------------------
 
-    if [[ "$DOTFILES_UPDATE" == 1 ]]; then
-        missing=("$@")
-    fi
     log "Comprobando paquetes APT: ${missing[*]}"
     if [[ -z "${DOTFILES_APT_STAMP:-}" || ! -f "$DOTFILES_APT_STAMP" ]]; then
         as_root apt-get update
@@ -168,8 +169,27 @@ apt_install() {
         -y \
         --no-install-recommends \
         "${missing[@]}"
+    if [[ -n "${DOTFILES_APT_PACKAGES:-}" ]]; then
+        printf '%s\n' "${missing[@]}" >> "$DOTFILES_APT_PACKAGES"
+    fi
 }
 
+
+# ============================================================
+# Module Packages
+# ============================================================
+
+apt_install_module() {
+    local name="$1"
+    local -a packages=()
+    if ! declare -p DOTFILES_MODULE_PACKAGES >/dev/null 2>&1; then
+        source "$DOTFILES_ROOT/lib/modules.sh"
+    fi
+    [[ ${DOTFILES_MODULE_PACKAGES[$name]+yes} ]] || die "Módulo APT desconocido: $name"
+    read -r -a packages <<< "${DOTFILES_MODULE_PACKAGES[$name]}"
+    (( ${#packages[@]} > 0 )) || return 0
+    apt_install "${packages[@]}"
+}
 
 # ============================================================
 # Downloads

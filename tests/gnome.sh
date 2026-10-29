@@ -63,10 +63,8 @@ assert items.count(sys.argv[2]) == 1, "Se perdió el atajo existente"
 assert items.count(sys.argv[3]) == 1, "El atajo de Kitty está duplicado"
 PYTHON
 
-# La integración debe ejecutarse sin un flag adicional.
-grep -Eq '^for module in .* gnome; do$' "$repo/bin/dotfiles" || {
-    printf '[error] GNOME: no forma parte de la instalación base.\n' >&2
-    exit 1
-}
+# La selección del manifiesto debe activar GNOME sin un flag adicional.
+env XDG_CURRENT_DESKTOP=GNOME bash -c 'source "$1/lib/common.sh"; source "$1/lib/modules.sh"; dotfiles_modules_select; [[ " ${DOTFILES_SELECTED_MODULES[*]} " == *" gnome "* ]]' bash "$repo"
+env XDG_CURRENT_DESKTOP=XFCE bash -c 'source "$1/lib/common.sh"; source "$1/lib/modules.sh"; dotfiles_modules_select; [[ " ${DOTFILES_SELECTED_MODULES[*]} " != *" gnome "* ]]' bash "$repo"
 
 printf 'GNOME: detección de escritorio, atajo, conservación e idempotencia verificadas.\n'

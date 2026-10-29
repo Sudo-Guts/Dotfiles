@@ -96,21 +96,14 @@ trap 'rm -rf -- "$work"' EXIT
 # Docker GPG Key
 # ============================================================
 
-log "Descargando clave GPG oficial de Docker..."
-
-download \
-    "https://download.docker.com/linux/$distro/gpg" \
-    "$work/docker.asc"
-
-as_root install \
-    -d \
-    -m 0755 \
-    /etc/apt/keyrings
-
-as_root install \
-    -m 0644 \
-    "$work/docker.asc" \
-    /etc/apt/keyrings/docker.asc
+repo_changed=0
+if [[ ! -s /etc/apt/keyrings/docker.asc ]]; then
+    log "Descargando clave GPG oficial de Docker..."
+    download "https://download.docker.com/linux/$distro/gpg" "$work/docker.asc"
+    as_root install -d -m 0755 /etc/apt/keyrings
+    as_root install -m 0644 "$work/docker.asc" /etc/apt/keyrings/docker.asc
+    repo_changed=1
+fi
 
 
 # ============================================================
@@ -128,13 +121,13 @@ Architectures: $architecture
 Signed-By: /etc/apt/keyrings/docker.asc
 EOF
 
-as_root install \
-    -m 0644 \
-    "$work/docker.sources" \
-    /etc/apt/sources.list.d/docker.sources
+if ! cmp -s -- "$work/docker.sources" /etc/apt/sources.list.d/docker.sources; then
+    as_root install -m 0644 "$work/docker.sources" /etc/apt/sources.list.d/docker.sources
+    repo_changed=1
+fi
 
 # El índice anterior puede haberse obtenido antes de añadir este repositorio.
-if [[ -n "${DOTFILES_APT_STAMP:-}" ]]; then rm -f -- "$DOTFILES_APT_STAMP"; fi
+if (( repo_changed )) && [[ -n "${DOTFILES_APT_STAMP:-}" ]]; then rm -f -- "$DOTFILES_APT_STAMP"; fi
 
 
 # ============================================================
@@ -143,12 +136,7 @@ if [[ -n "${DOTFILES_APT_STAMP:-}" ]]; then rm -f -- "$DOTFILES_APT_STAMP"; fi
 
 log "Instalando Docker Engine..."
 
-apt_install \
-    docker-ce \
-    docker-ce-cli \
-    containerd.io \
-    docker-buildx-plugin \
-    docker-compose-plugin
+apt_install_module docker
 
 
 # ============================================================
