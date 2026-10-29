@@ -16,6 +16,33 @@ directos de cada caso con `case` o `default`. Se aplica al guardar o con
 `Espacio cf`; un `.clang-format` o `_clang-format` del proyecto tiene prioridad.
 La alineación de `break;` es un ajuste de Neovim, no de `clang-format` al ejecutarlo solo.
 
+## Núcleo y componentes opcionales
+
+El entorno está orientado al desarrollo HDL. Una instalación normal incluye
+Verilog/SystemVerilog, VHDL, Python y C/C++; no requieren flags adicionales.
+
+| Parte del núcleo | Herramientas incluidas |
+|---|---|
+| Terminal y Git | Zsh, Oh My Zsh y sus plugins, Kitty, Git, GitHub CLI y Serie |
+| Utilidades | ripgrep, fd, fzf, tree, portapapeles X11/Wayland e Iosevka Nerd Font |
+| C/C++ | GCC/G++, Make, CMake, Ninja, Bear, clangd, clang-format, GDB y CodeLLDB |
+| HDL | Icarus Verilog/vvp, GHDL, GTKWave, Verible y VHDL LS |
+| Python | Python 3, soporte para entornos virtuales, Pyright, Ruff y debugpy; Node/npm para Pyright |
+| Neovim | Plugins fijados, parsers de Tree-sitter y herramientas auxiliares para Lua y shell |
+
+AVR, RISC-V, Docker, Apache y OpenSSH son opcionales y se añaden mediante
+`--with-avr`, `--with-riscv`, `--with-docker`, `--with-apache` y `--with-ssh`.
+Su selección se conserva al repetir `install` o ejecutar `update`; omitir un
+flag no desinstala ni desactiva un componente ya seleccionado.
+
+La integración con GNOME depende de la sesión activa. Configura Kitty cuando
+detecta GNOME y se omite en otros entornos; no instala el escritorio. La opción
+`--with-gnome` se conserva como alias de compatibilidad. HDL y Python forman
+parte del núcleo, por lo que no existen `--with-hdl` ni `--with-python`.
+
+El inventario de módulos, sus dependencias y la revisión de duplicaciones se
+documentan en [setup/README.md](setup/README.md).
+
 ## Instalación
 
 Requiere Git e Internet. Ejecuta el instalador como usuario normal; puede pedir permisos para instalar paquetes.
