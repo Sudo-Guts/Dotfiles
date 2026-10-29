@@ -11,8 +11,9 @@ Configuración personal para un entorno de desarrollo en Debian y Ubuntu. Incluy
 - Integración automática de Kitty con GNOME para abrir la terminal con `Ctrl+T`.
 - Opciones de instalación para AVR/ATmega, RISC-V, Docker, Apache y OpenSSH.
 
-En C/C++, el estilo predeterminado usa cuatro espacios y alinea los `break;`
-directos de cada caso con `case` o `default`. Se aplica al guardar o con
+En C/C++, el estilo predeterminado usa cuatro espacios, llaves en la misma
+línea y conserva firmas y llamadas sin dividirlas por longitud. Alinea los
+`break;` directos de cada caso con `case` o `default`. Se aplica al guardar o con
 `Espacio cf`; un `.clang-format` o `_clang-format` del proyecto tiene prioridad.
 La alineación de `break;` es un ajuste de Neovim, no de `clang-format` al ejecutarlo solo.
 
@@ -61,8 +62,10 @@ La preparación de Neovim usa cachés temporales para evitar bloqueos de Tree-si
 dejados por una ejecución interrumpida. Las elimina al terminar o fallar;
 plugins, herramientas y parsers permanecen en sus rutas de datos habituales.
 
-Los parsers de Treesitter se compilan de uno en uno, tanto durante la instalación
-como al actualizar el plugin desde Lazy, para reducir el consumo simultáneo de memoria.
+Los parsers se compilan de uno en uno durante la preparación explícita. Abrir
+Neovim no descarga plugins, herramientas ni parsers. Actualizar un plugin desde
+Lazy tampoco recompila parsers. Las versiones previstas están fijadas en el
+repositorio; el instalador trabaja con una copia temporal del lockfile.
 
 Al repetir `install`, se conservan los paquetes disponibles. Si Neovim ya tiene
 sus plugins, herramientas y parsers completos, una comprobación local evita
@@ -179,8 +182,30 @@ rama divergente o a otro historial y conserva los componentes opcionales.
 | `dotfiles help` | Ver comandos y opciones |
 | `dotfiles update` | Actualizar el repositorio y sus componentes |
 | `dotfiles doctor` | Revisar enlaces y herramientas instaladas |
-| `dotfiles check` | Comprobar sintaxis y configuración |
+| `dotfiles check` | Comprobar sintaxis y regresiones aisladas |
+| `dotfiles check --nvim` | Validar plugins, parsers, LSP, formato, atajos y terminal con las herramientas instaladas |
 | `dotfiles link` | Aplicar los enlaces de configuración |
+
+### Diagnóstico y mantenimiento de Neovim
+
+`:DotfilesHealth` muestra versiones, herramientas, parsers y errores de carga;
+`:ConformInfo` revisa los formateadores y `Espacio ci` muestra el estado LSP.
+Si falla una herramienta o parser, el editor conserva la edición básica y avisa.
+`dotfiles doctor` sigue considerando incompleto un componente obligatorio.
+Para reparar la instalación, ejecuta `dotfiles install`.
+
+El núcleo prepara parsers de C, C++, Lua, Bash, SystemVerilog (también para
+Verilog), VHDL y Python. Los demás son opcionales: `:TSInstall gitcommit`, por
+ejemplo, usa las revisiones del plugin fijado. Un fallo de `gitcommit` no bloquea
+el editor ni una instalación del núcleo. Los parsers auxiliares ya instalados se
+conservan y se reconcilian durante la preparación.
+
+C/C++ y Python disponen de LSP, autocompletado, formato y DAP. Verilog/SV y VHDL
+disponen de LSP, autocompletado, parsers y acciones de simulación. El formato de
+Verilog/SV sigue siendo manual con `Espacio cf`; VHDL no tiene un formateador
+configurado. La depuración de HDL se realiza con simulación y ondas.
+
+Los detalles de versiones y validación están en [setup/README.md](setup/README.md).
 
 ### Grafo de Git desde la terminal
 

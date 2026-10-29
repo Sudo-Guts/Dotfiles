@@ -1,8 +1,8 @@
 # Núcleo y mantenimiento de Dotfiles
 
 La terminal se orienta al desarrollo HDL y conserva Python y C/C++ dentro del
-núcleo. Esta revisión documenta la base antes de reorganizar instaladores o
-configuraciones de Neovim.
+núcleo. Este documento registra la reorganización del instalador y el
+fortalecimiento de Neovim, manteniendo las responsabilidades existentes.
 
 ## Fase 1: base protegida
 
@@ -86,7 +86,7 @@ al núcleo ni que el instalador deba descargarlas.
 | Paquetes APT repetidos | Git y fzf son requisitos de varios módulos; Python/venv también | Sus declaraciones están centralizadas en `modules.conf`. `apt_install` comprueba los instalados y registra los paquetes ya procesados durante cada ejecución para evitar trabajo repetido en `update` |
 | Posibles dependencias sobrantes | `wget` y el ejecutable `jq` no tienen llamadas directas identificadas en los scripts actuales; `gh --jq` es una opción de GitHub CLI | Registrar candidatos y revisar instaladores externos antes de eliminarlos |
 | Comprobación local de archivos | `has` en `cpp.lua` y `project.lua` realiza la misma consulta breve | Mantener los helpers locales; extraerlos por sí solos añadiría otra dependencia entre módulos |
-| Serialización de perfiles | `cpp.store` y `tasks.store_profile` utilizan `python3 -m json.tool` | Revisar una función compartida en la fase 3, conservando la diferencia entre el perfil C/C++ y los perfiles HDL combinados |
+| Serialización de perfiles | `cpp.store` y `tasks.store_profile` utilizan `python3 -m json.tool` | Mantener las escrituras separadas: C/C++ guarda un perfil propio y HDL combina perfiles. La coincidencia de la llamada a json.tool no justifica otra abstracción |
 | Código Verilog/VHDL parecido | Ambos usan `tasks.project_root`, perfiles, archivos, procesos y testbenches | La infraestructura común ya se comparte. Mantener separados los índices y comandos de cada lenguaje |
 | Validación de comandos | `require_command` en Bash y `dotfiles_need` en Zsh | Conservar separados: los instaladores terminan ante un fallo; el shell interactivo debe devolver el control al usuario |
 
@@ -109,12 +109,9 @@ externo al directorio de usuario, dos ejecuciones consecutivas, destinos
 protegidos, orígenes ausentes y recuperación si falla la creación de un enlace.
 Las preferencias reales de GNOME no se modifican.
 
-La comprobación inicial de esta fase pasó las pruebas disponibles de Bash,
-Zsh, estado, CLI y GNOME. En el entorno de revisión no están instalados
-ShellCheck ni Neovim; `check` avisa que omite esas comprobaciones. Esto no
-equivale a validar una instalación completa, LSP, parsers, depuración o
-hardware. `dotfiles check --nvim` y las pruebas de funcionamiento quedan
-para un entorno con Neovim y sus herramientas instaladas.
+La revisión inicial de la fase 1 no tenía ShellCheck ni Neovim disponibles.
+Las comprobaciones reales añadidas en la fase 3 se describen a continuación;
+las simulaciones de instalación no equivalen a instalar todo el sistema.
 
 ## Fase 2: instalación compartida y repetible
 
@@ -142,14 +139,87 @@ Neovim/Docker. No usa red ni servicios reales. `tests/tools.lua` comprueba
 selección, idempotencia y reconciliación de Mason con un registro simulado;
 `check` lo ejecuta cuando Neovim está disponible.
 
+## Fase 3: Neovim predecible y recuperable
+
+- [x] Cargar LSP, acciones y snippets de HDL solo cuando corresponde al lenguaje.
+- [x] Reservar las descargas a la preparación explícita y fijar también las restricciones de Lazy.
+- [x] Separar siete parsers esenciales de los auxiliares, incluido `gitcommit`.
+- [x] Verificar commits de plugins, marcadores de descargas incompletas, herramientas y revisiones de parsers.
+- [x] Mantener edición y guardado con diagnóstico visible ante componentes ausentes o dañados.
+- [x] Ajustar `.clang-format` al estándar y conservar las reglas del proyecto.
+- [x] Validar carga, LSP, formato, atajos, terminal y DAP Python; dejar una prueba ejecutable de CodeLLDB para un host con permiso de depuración.
+
+### Versiones y actualización controlada
+
+| Componente | Fuente de versión | Conjunto de referencia |
+|---|---|---|
+| Neovim | `setup/versions.sh` | 0.12.5; mínimo 0.12.0 |
+| Plugins, incluidos Lazy y Tree-sitter | `config/nvim/lazy-lock.json` | 40 commits exactos; restricciones `commit` y `pin` en la configuración |
+| Tree-sitter CLI | `setup/versions.sh` | 0.27.0 |
+| Parsers | Registro del commit fijado de `nvim-treesitter` | Revisiones exactas de C, C++, Lua, Bash, SystemVerilog, VHDL y Python |
+| Lua LS / StyLua / shfmt | `config/nvim/lua/config/nvim/tools.lua` | 3.19.1 / v2.5.2 / v3.14.1 |
+| Verible / VHDL LS | Mismo catálogo Mason | v0.0-4296-g0f262651 / v0.88.0 |
+| CodeLLDB / Pyright / Ruff / debugpy | Mismo catálogo Mason | v1.12.3 / 1.1.414 / 0.16.10 / 1.8.22 |
+| clangd / clang-format | APT de la distribución | 18.1.3 usado en las pruebas; no se duplica su instalación en Mason |
+
+Los commits del lockfile se aplican también a los specs de Lazy: `:Lazy update`
+no adelanta los plugins fijados. El instalador usa una copia del lockfile para
+que la preparación no reescriba las versiones del repositorio. Para cambiar
+versiones se edita deliberadamente la fuente correspondiente, se valida el
+conjunto y se registra en Git. Las herramientas externas se aceptan, pero
+`doctor` advierte que su versión no está verificada por Mason. Una versión
+Mason diferente se conserva durante `install` y se reconcilia con `update`.
+
+La revisión de parsers compara el binario cargable y el recibo de revisión con
+el registro fijado. No instala auxiliares nuevos automáticamente. Un auxiliar
+existente se conserva; si falla su reconciliación se informa como advertencia.
+La edición de commits sigue funcionando sin el parser `gitcommit`.
+
+### Validación del editor
+
+```bash
+dotfiles check
+dotfiles doctor
+dotfiles check --nvim
+# En un host que permita ejecutar depuradores:
+DOTFILES_TEST_DAP=1 dotfiles check --nvim
+```
+
+`tests/nvim.py` usa Neovim real en directorios de usuario temporales, sin plugins
+ni red: comprueba apertura/guardado, diagnóstico, fallo de descarga, modo de
+solo lectura, parsers ausentes o incompatibles, marcadores de instalación y
+preservación del formato si falla el ajuste de casos. Cuando está disponible,
+clang-format comprueba también llaves, sangría y firmas/llamadas largas.
+
+`tests/nvim-runtime.lua` usa los plugins y herramientas de la instalación
+enlazada con proyectos temporales. Comprueba los parsers esenciales, conexiones
+LSP por lenguaje, navegación C, capacidades de autocompletado, formato C/C++,
+prioridad de `.clang-format`, Ruff, StyLua, Verible, atajos y entrada/salida de terminal.
+La prueba DAP opcional compila un programa C y lo ejecuta con CodeLLDB; también
+inicia Python con debugpy, comprueba una pausa y continúa hasta terminar.
+Se puede seleccionar un adaptador con `DOTFILES_TEST_DAP=c` o
+`DOTFILES_TEST_DAP=python`.
+
+El conjunto se probó en Ubuntu 24.04 x86_64 con Neovim 0.12.5, los 40
+plugins del lockfile, las nueve herramientas Mason y los siete parsers. Pasaron
+`dotfiles check --nvim` y la variante `DOTFILES_TEST_DAP=python`: incluye
+conexiones LSP para C/C++, Python, Verilog/SV, VHDL y Lua, navegación y respuesta
+de autocompletado C, formato y terminal. La preparación repetida terminó sin
+descargas y sin cambios en el lockfile, los recibos Mason ni los parsers.
+
+CodeLLDB inició, pero el sistema rechazó el lanzamiento del programa con
+`ptrace failed: Operation not permitted`. Su ejecución queda pendiente en
+un host con ese permiso. No se validaron la alternativa GDB, hardware ni la
+interfaz gráfica de GTKWave; forman parte de las comprobaciones posteriores.
+
+C/C++ conserva formato al guardar. Lua usa cuatro espacios y evita cortes por
+longitud con el respaldo `.stylua.toml`; la configuración del proyecto tiene
+prioridad. Verilog/SV mantiene formato manual; VHDL no
+incluye un formateador automático. Los fallos opcionales no bloquean la edición;
+los componentes obligatorios incompletos sí hacen fallar `doctor` y el instalador.
+
 ## Siguientes fases
 
-La fase 3 debe revisar carga por lenguaje, versiones, parsers y recuperación
-del editor. Incluye alinear el formato predeterminado con el estándar de
-programación: cuatro espacios, llaves en la misma línea y firmas y llamadas
-sin fragmentar. La configuración `.clang-format` actual todavía necesita
-ese ajuste; no se cambia durante esta revisión de la base.
-
-Las fases 4 y 5 completarán las pruebas de instalación, actualización y
-funcionamiento, la limpieza respaldada por evidencia y la documentación
-final antes de fusionar a `main`.
+La fase 4 completará la matriz de instalaciones limpias, combinaciones de
+opcionales, migración del estado y recuperación. La fase 5 cubrirá limpieza,
+documentación final y la fusión a `main` después de superar las pruebas.

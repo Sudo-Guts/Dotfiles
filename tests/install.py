@@ -215,7 +215,7 @@ esac
     printf 'check\\n' >> "$TEST_NVIM_LOG"
     if [[ "$TEST_NVIM_STATE" != plugins-missing ]]; then printf 'ready\\n' > "$DOTFILES_NVIM_PLUGINS_READY"; fi
     [[ "$TEST_NVIM_STATE" == healthy ]]
-elif [[ "$*" == *'Lazy! restore'* ]]; then
+elif [[ "${DOTFILES_NVIM_INSTALL:-}" == 1 ]]; then
     printf 'restore\\n' >> "$TEST_NVIM_LOG"
 else
     printf 'prepare\\n' >> "$TEST_NVIM_LOG"

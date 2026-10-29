@@ -21,14 +21,24 @@ if XDG_CACHE_HOME="$cache_home/check" DOTFILES_NVIM_READONLY=1 DOTFILES_NVIM_CHE
     end)
     if not ok then print(err); vim.cmd("cquit 1") end
 ' +qa > "$cache_home/check.log" 2>&1; then
-    log "Neovim: plugins, herramientas y parsers listos; no se requieren descargas."
+    log "Neovim: núcleo completo; se conserva la instalación actual."
     exit 0
 fi
 
 # restore reproduce el lockfile; no busca versiones nuevas de plugins.
 if [[ ! -f "$cache_home/plugins-ready" ]]; then
     log "Restaurando plugins de Neovim..."
-    XDG_CACHE_HOME="$cache_home/restore" nvim --headless "+Lazy! restore" "+qa"
+    cp -- "$DOTFILES_ROOT/config/nvim/lazy-lock.json" "$cache_home/lazy-lock.json"
+    XDG_CACHE_HOME="$cache_home/restore" DOTFILES_NVIM_INSTALL=1 DOTFILES_NVIM_LOCKFILE="$cache_home/lazy-lock.json" DOTFILES_NVIM_CHECK_SCRIPT="$DOTFILES_ROOT/setup/nvim-doctor.lua" nvim --headless -c 'lua
+        local ok, err = pcall(function()
+            local checks = dofile(vim.env.DOTFILES_NVIM_CHECK_SCRIPT)
+            checks.locked()
+            require("lazy").install({ wait = true, lockfile = true })
+            if not pcall(checks.plugins) then require("lazy").restore({ wait = true }) end
+            checks.plugins()
+        end)
+        if not ok then print(err); vim.cmd("cquit 1") end
+    ' +qa
 fi
 
 log "Preparando herramientas de Neovim para los módulos seleccionados..."

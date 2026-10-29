@@ -86,6 +86,7 @@ previous="$(fixture_git -C "$work/repository" rev-parse HEAD)"
 fixture_git -C "$work/repository" switch --quiet main
 fixture_git -C "$work/repository" commit --quiet --allow-empty -m main
 target="$(fixture_git -C "$work/repository" rev-parse HEAD)"
+# shellcheck disable=SC2034 # Las funciones cargadas de lib/state.sh usan esta raíz.
 DOTFILES_ROOT="$work/repository"
 fixture 4
 sed -i "s/^applied_commit=$/applied_commit=$previous/" "$state"

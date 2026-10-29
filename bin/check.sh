@@ -46,6 +46,7 @@ if command -v nvim >/dev/null; then
         if not ok then print(err); vim.cmd("cquit 1") end
     ' +qa
     DOTFILES_TEST_ROOT="$repo" nvim --clean --headless -l "$repo/tests/tools.lua"
+    python3 "$repo/tests/nvim.py"
 else
     printf 'Neovim no está instalado; se omite la comprobación de sintaxis Lua.\n'
 fi
@@ -57,43 +58,9 @@ if [[ "${1:-}" == --nvim ]]; then
         printf 'Ejecuta dotfiles link antes de comprobar la carga de Neovim.\n' >&2
         exit 1
     }
-    DOTFILES_NVIM_READONLY=1 nvim --headless -c 'lua
-        local ok, err = pcall(function()
-            assert(package.loaded.lazy, "No se cargó la configuración GUTS")
-            local plugins = {}
-            for name in pairs(require("lazy.core.config").plugins) do
-                plugins[#plugins + 1] = name
-            end
-            require("lazy").load({ plugins = plugins })
-            vim.wait(200)
-            assert(vim.g.mapleader == " ")
-            assert(vim.fn.maparg("<C-v>", "n") == "")
-            assert(vim.fn.maparg("<leader>ff", "n") ~= "")
-            assert(vim.fn.maparg("gd", "n") ~= "")
-            assert(#require("dap").configurations.c == 3)
-            assert(require("dap").configurations.python[1].type == "python")
-            assert(vim.lsp.config.pyright.settings.python.analysis.typeCheckingMode == "basic")
-            assert(vim.lsp.config.ruff.cmd[1] == "ruff")
-            assert(require("cmp").get_config().sources[1].name == "nvim_lsp")
-            for _, ft in ipairs({ "c", "cpp", "verilog", "systemverilog", "vhdl", "lua", "markdown", "python" }) do
-                vim.api.nvim_set_current_buf(vim.api.nvim_create_buf(false, true))
-                vim.bo.filetype = ft
-                local cpp = ft == "c" or ft == "cpp"
-                local hdl = ft == "verilog" or ft == "systemverilog" or ft == "vhdl"
-                for _, key in ipairs({ "rp", "rg", "rc", "rt", "rl", "rx", "rm" }) do
-                    assert((vim.fn.maparg("<leader>" .. key, "n") ~= "") == (cpp or hdl), "Atajo incorrecto: " .. ft .. " " .. key)
-                end
-                for _, key in ipairs({ "rn", "rs", "rw" }) do
-                    assert((vim.fn.maparg("<leader>" .. key, "n") ~= "") == hdl, "Atajo HDL en " .. ft .. ": " .. key)
-                end
-                assert((vim.fn.maparg("<leader>re", "n") ~= "") == cpp, "Atajo de ejecución incorrecto: " .. ft)
-                assert((vim.fn.maparg("<leader>db", "n") ~= "") == (cpp or ft == "python"), "Atajo de depuración incorrecto: " .. ft)
-                local parser = vim.treesitter.get_parser(0)
-                assert(parser and parser:parse()[1], "Parser faltante: " .. ft)
-            end
-            assert(vim.v.errmsg == "", vim.v.errmsg)
-        end)
+    DOTFILES_NVIM_READONLY=1 DOTFILES_TEST_ROOT="$repo" nvim --headless -c 'lua
+        local ok, err = pcall(dofile, vim.env.DOTFILES_TEST_ROOT .. "/tests/nvim-runtime.lua")
         if not ok then print(err); vim.cmd("cquit 1") end
-    ' +qa
+    ' +qa!
 fi
 printf 'Comprobaciones terminadas.\n'

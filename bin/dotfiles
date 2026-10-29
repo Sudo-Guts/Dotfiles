@@ -103,6 +103,7 @@ for module in "${requested_modules[@]}"; do
     printf -v "DOTFILES_WITH_${module^^}" '%s' 1
 done
 if [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]]; then
+    # shellcheck disable=SC2034 # lib/state.sh conserva la selección histórica.
     DOTFILES_WITH_GNOME=1
 fi
 dotfiles_modules_select
