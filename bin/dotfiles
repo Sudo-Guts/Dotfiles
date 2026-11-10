@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# Resolver también ~/.local/bin/dotfiles antes de localizar la librería.
+entry="$(realpath -e -- "${BASH_SOURCE[0]}")"
+source "$(dirname -- "$entry")/../lib/common.sh"
+
+usage() {
+    cat <<'HELP'
+Uso: dotfiles <comando> [opciones]
+
+  install   Instala lo que falta y aplica los enlaces gestionados.
+  update    Sincroniza el upstream y actualiza los componentes seleccionados.
+  link      Solo respalda y enlaza las configuraciones y este comando.
+  doctor    Comprueba enlaces y herramientas instaladas.
+  check     Comprueba sintaxis y ShellCheck; --nvim añade plugins y parsers.
+
+Opciones de install y update:
+  --with-avr       AVR-GCC, AVR-LibC, Binutils AVR y AVRDUDE.
+  --with-riscv     Toolchain bare-metal, GDB multiarch y QEMU.
+  --with-docker    Docker, sin cambiar los grupos del usuario.
+  --with-gnome     Alias de compatibilidad: la integración GNOME ya es automática.
+  --with-apache    Servidor web Apache mediante APT.
+  --with-ssh       Servidor OpenSSH mediante APT.
+  --change-shell   Solo install: cambia el shell predeterminado a Zsh.
+  --migrate-state  Solo install: respalda el estado de otra revisión o historial
+                   y conserva los componentes opcionales elegidos.
+
+La instalación base incluye C/C++, Python, Verilog/SystemVerilog y VHDL.
+En sesiones GNOME configura Ctrl+T para Kitty de forma automática.
+Serie se instala por defecto para explorar el grafo Git con glpick.
+Los destinos sustituidos se conservan en <destino>.backup.XXXXXX/original.
+APT puede activar los servicios Apache y SSH al instalarlos.
+HELP
+}
+
+command_name="${1:-help}"
+(( $# == 0 )) || shift
+original_args=("$@")
+requested_modules=()
+change_shell=0
+migrate_state=0
+
+case "$command_name" in
+    help|--help|-h) usage; exit 0 ;;
+    doctor) (( $# == 0 )) || die "doctor no admite opciones."; exec bash "$DOTFILES_ROOT/bin/doctor.sh" ;;
+    check) exec bash "$DOTFILES_ROOT/bin/check.sh" "$@" ;;
+    link) (( $# == 0 )) || die "link no admite opciones." ;;
+    install|update)
+        source "$DOTFILES_ROOT/lib/modules.sh"
+        for arg in "$@"; do
+            case "$arg" in
+                # Se mantiene por compatibilidad con comandos existentes.
+                --with-gnome) : ;;
+                --with-*)
+                    module="${arg#--with-}"
+                    [[ "$module" =~ ^[a-z]+$ && "${DOTFILES_MODULE_KIND[$module]:-}" == optional ]] || die "Opción desconocida: $arg"
+                    requested_modules+=("$module") ;;
+                --change-shell)
+                    [[ "$command_name" == install ]] || die "--change-shell solo se usa con install."
+                    change_shell=1 ;;
+                --migrate-state)
+                    [[ "$command_name" == install ]] || die "--migrate-state solo se usa con install."
+                    migrate_state=1 ;;
+                --help|-h) usage; exit 0 ;;
+                *) die "Opción desconocida: $arg" ;;
+            esac
+        done
+        ;;
+    *) die "Comando desconocido: $command_name. Usa dotfiles help." ;;
+esac
+
+if (( EUID == 0 )) && [[ "${DOTFILES_ALLOW_ROOT:-0}" != 1 ]]; then
+    die "Ejecuta dotfiles como usuario normal, sin sudo."
+fi
+
+source "$DOTFILES_ROOT/lib/links.sh"
+if [[ "$command_name" == link ]]; then
+    dotfiles_links_apply
+    log "Enlaces listos."
+    exit 0
+fi
+
+require_command git
+source "$DOTFILES_ROOT/lib/state.sh"
+dotfiles_state_load
+dotfiles_state_lock
+head="$(dotfiles_git_head)"
+if [[ "$command_name" == update && -z "${DOTFILES_UPDATE_APPLY_COMMIT:-}" ]]; then
+    source "$DOTFILES_ROOT/lib/update.sh"
+    dotfiles_update_sync "${original_args[@]}"
+fi
+if [[ "$command_name" == update ]]; then
+    [[ "${DOTFILES_UPDATE_REPO:-}" == "$DOTFILES_ROOT" && "${DOTFILES_UPDATE_APPLY_COMMIT:-}" == "$head" ]] || die "Reinicio de actualización inválido."
+    export DOTFILES_UPDATE=1
+else
+    export DOTFILES_UPDATE=0
+fi
+dotfiles_git_clean
+if (( migrate_state )); then dotfiles_state_migrate "$head"; fi
+dotfiles_state_guard "$head"
+for module in "${requested_modules[@]}"; do
+    printf -v "DOTFILES_WITH_${module^^}" '%s' 1
+done
+if [[ "${XDG_CURRENT_DESKTOP:-}" == *GNOME* ]]; then
+    # shellcheck disable=SC2034 # lib/state.sh conserva la selección histórica.
+    DOTFILES_WITH_GNOME=1
+fi
+dotfiles_modules_select
+DOTFILES_PENDING_COMMIT="$head"
+dotfiles_state_write
+
+# Un único índice APT durante esta ejecución, compartido por los módulos.
+work="$(mktemp -d)"
+trap 'rm -rf -- "$work"' EXIT
+export DOTFILES_APT_STAMP="$work/apt-refreshed"
+export DOTFILES_APT_PACKAGES="$work/apt-packages"
+dotfiles_links_apply
+
+for module in "${DOTFILES_SELECTED_MODULES[@]}"; do
+    log "Instalando/comprobando: $module"
+    bash "$DOTFILES_ROOT/setup/modules/$module.sh"
+done
+
+if (( change_shell )); then
+    require_command zsh
+    chsh -s "$(command -v zsh)"
+fi
+[[ "$(dotfiles_git_head)" == "$head" ]] || die "El commit cambió durante la instalación."
+dotfiles_git_clean
+DOTFILES_DOCTOR_ALLOW_PENDING=1 bash "$DOTFILES_ROOT/bin/doctor.sh"
+# Variables leídas por dotfiles_state_write, definido en lib/state.sh.
+# shellcheck disable=SC2034
+DOTFILES_APPLIED_COMMIT="$head"
+# shellcheck disable=SC2034
+DOTFILES_PENDING_COMMIT=""
+dotfiles_state_write
+log "Instalación/actualización terminada. Abre una terminal nueva para aplicar los cambios."

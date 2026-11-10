@@ -1,0 +1,4 @@
+# El proyecto puede sustituir este respaldo con su propio stylua.toml.
+indent_type = "Spaces"
+indent_width = 4
+column_width = 999999
