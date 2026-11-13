@@ -80,7 +80,7 @@ die() {
 
 trap '
     printf "[error] %s:%s: %s\n" \
-        "${BASH_SOURCE[0]}" \
+        "${BASH_SOURCE[0]:-bash}" \
         "$LINENO" \
         "$BASH_COMMAND" >&2
 ' ERR
@@ -112,83 +112,18 @@ require_command() {
 
 
 # ============================================================
-# APT Packages
+# Package Interface
 # ============================================================
+
+# Las interfaces historicas delegan en la fachada sin duplicar el backend.
+source "$DOTFILES_ROOT/lib/packages.sh"
 
 apt_install() {
-    require_command apt-get
-
-    local missing=()
-    local package
-
-
-    # --------------------------------------------------------
-    # Find Missing Packages
-    # --------------------------------------------------------
-
-    for package in "$@"; do
-
-        if [[ -n "${DOTFILES_APT_PACKAGES:-}" && -f "$DOTFILES_APT_PACKAGES" ]] && grep -Fxq -- "$package" "$DOTFILES_APT_PACKAGES"; then
-            continue
-        fi
-
-        if [[ "$DOTFILES_UPDATE" == 1 ]] || ! dpkg-query \
-            -W \
-            -f='${Status}' \
-            "$package" \
-            2>/dev/null |
-            grep -qx 'install ok installed'; then
-
-            missing+=("$package")
-
-        fi
-
-    done
-
-
-    # --------------------------------------------------------
-    # Nothing to Install
-    # --------------------------------------------------------
-
-    if (( ${#missing[@]} == 0 )); then
-        return 0
-    fi
-
-
-    # --------------------------------------------------------
-    # Install Missing Packages
-    # --------------------------------------------------------
-
-    log "Comprobando paquetes APT: ${missing[*]}"
-    if [[ -z "${DOTFILES_APT_STAMP:-}" || ! -f "$DOTFILES_APT_STAMP" ]]; then
-        as_root apt-get update
-        if [[ -n "${DOTFILES_APT_STAMP:-}" ]]; then : > "$DOTFILES_APT_STAMP"; fi
-    fi
-
-    as_root apt-get install \
-        -y \
-        --no-install-recommends \
-        "${missing[@]}"
-    if [[ -n "${DOTFILES_APT_PACKAGES:-}" ]]; then
-        printf '%s\n' "${missing[@]}" >> "$DOTFILES_APT_PACKAGES"
-    fi
+    dotfiles_packages_install "$@"
 }
 
-
-# ============================================================
-# Module Packages
-# ============================================================
-
 apt_install_module() {
-    local name="$1"
-    local -a packages=()
-    if ! declare -p DOTFILES_MODULE_PACKAGES >/dev/null 2>&1; then
-        source "$DOTFILES_ROOT/lib/modules.sh"
-    fi
-    [[ ${DOTFILES_MODULE_PACKAGES[$name]+yes} ]] || die "Módulo APT desconocido: $name"
-    read -r -a packages <<< "${DOTFILES_MODULE_PACKAGES[$name]}"
-    (( ${#packages[@]} > 0 )) || return 0
-    apt_install "${packages[@]}"
+    dotfiles_packages_install_module "$@"
 }
 
 # ============================================================

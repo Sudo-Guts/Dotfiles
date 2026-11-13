@@ -38,8 +38,8 @@ class InstallationTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return result
 
-    def shell(self, code, **environment):
-        return self.invoke(["bash", "-c", code, "bash", str(ROOT)], **environment)
+    def shell(self, code, repo=ROOT, **environment):
+        return self.invoke(["bash", "-c", code, "bash", str(repo)], **environment)
 
     def executable(self, name, content):
         path = self.bin / name
@@ -215,16 +215,18 @@ esac
         self.assertIn("FALTA dotfiles-test-avr-absent", result.stdout)
 
     def test_apt_install_skips_available_packages(self):
+        repo = self.repository(stubs=False)
         self.executable("dpkg-query", "printf 'install ok installed\\n'\n")
         self.executable("apt-get", "exit 0\n")
         log = self.base / "apt.log"
-        self.shell('source "$1/lib/common.sh"; as_root() { printf "%s\\n" "$*" >> "$TEST_APT_LOG"; }; apt_install_module git', TEST_APT_LOG=str(log))
+        self.shell('source "$1/lib/common.sh"; as_root() { printf "%s\\n" "$*" >> "$TEST_APT_LOG"; }; apt_install_module git', repo=repo, TEST_APT_LOG=str(log))
         self.assertFalse(log.exists())
 
     def test_apt_update_deduplicates_packages_and_refresh(self):
+        repo = self.repository(stubs=False)
         self.executable("apt-get", "exit 0\n")
         log = self.base / "apt.log"
-        self.shell('source "$1/lib/common.sh"; as_root() { printf "%s\\n" "$*" >> "$TEST_APT_LOG"; }; apt_install_module base; apt_install_module git; apt_install_module python', TEST_APT_LOG=str(log), DOTFILES_UPDATE="1", DOTFILES_APT_STAMP=str(self.base / "apt-refreshed"), DOTFILES_APT_PACKAGES=str(self.base / "apt-packages"))
+        self.shell('source "$1/lib/common.sh"; as_root() { printf "%s\\n" "$*" >> "$TEST_APT_LOG"; }; apt_install_module base; apt_install_module git; apt_install_module python', repo=repo, TEST_APT_LOG=str(log), DOTFILES_UPDATE="1", DOTFILES_APT_STAMP=str(self.base / "apt-refreshed"), DOTFILES_APT_PACKAGES=str(self.base / "apt-packages"))
         lines = log.read_text().splitlines()
         self.assertEqual(lines.count("apt-get update"), 1)
         packages = [package for line in lines if line.startswith("apt-get install ") for package in line.split()[4:]]
@@ -272,7 +274,10 @@ fi
         self.executable("docker", "printf 'Docker test\\n'\n")
         apt_log, curl_log = self.base / "apt.log", self.base / "curl.log"
         environment = dict(TEST_APT_LOG=str(apt_log), TEST_CURL_LOG=str(curl_log), DOTFILES_APT_STAMP=str(self.base / "apt-refreshed"))
+        stamp = Path(environment["DOTFILES_APT_STAMP"])
+        stamp.write_text("indice anterior\n")
         self.invoke(["bash", str(module)], **environment)
+        self.assertFalse(stamp.exists(), "Docker debe invalidar el indice al cambiar su repositorio")
         source = apt_root / "sources.list.d/docker.sources"
         initial = source.stat().st_mtime_ns
         self.invoke(["bash", str(module)], **environment)

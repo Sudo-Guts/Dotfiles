@@ -24,6 +24,9 @@ en `feature/stm32-dfu` (`abdc2ba`); esta fase no incorpora su código. El campo
 | `config/` | Configuraciones de terminal, editor y herramientas |
 | `bin/` | Interfaz `dotfiles` y comandos de comprobación |
 | `lib/` | Funciones compartidas, enlaces, estado y sincronización |
+| `lib/common.sh` | Utilidades generales y wrappers historicos de paquetes |
+| `lib/packages.sh` | Fachada de paquetes y validacion del backend |
+| `lib/packages/apt.sh` | Consulta dpkg, instalacion APT y marcadores por ejecucion |
 | `setup/` | Instaladores, versiones y preparación de Neovim |
 
 `tests/` contiene las comprobaciones auxiliares. Esta fase añade pruebas de
@@ -35,6 +38,11 @@ El manifiesto único de módulos es `setup/modules.conf`. Cada línea declara
 nombre, selección (`core`, `gnome` u `optional`), dependencias, comandos de
 `doctor` y paquetes APT, separados por `|`. Se lee como datos, sin `source`
 ni `eval`. Los instaladores consumen sus paquetes con `apt_install_module`.
+
+Ese nombre se conserva como wrapper de `dotfiles_packages_install_module`.
+La interfaz comun, las reglas APT y sus pruebas se describen en
+[Gestion de paquetes](PACKAGES.md). El catalogo sigue declarando paquetes APT;
+esta separacion no incorpora todavia Pacman ni equivalencias Arch.
 
 Las dependencias deben aparecer antes que sus consumidores y estar activas.
 El orden explícito evita ciclos y mantiene `nvim-tools` al final, después de
