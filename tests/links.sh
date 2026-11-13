@@ -13,6 +13,12 @@ test_config="$work/config with spaces"
 mkdir -p "$fixture_repo" "$test_config/nvim" "$test_config/ruff" "$test_config/unmanaged" "$test_home/.local/bin"
 cp -R -- "$repo/bin" "$repo/lib" "$repo/setup" "$repo/config" "$fixture_repo/"
 
+# La politica de plataforma se prueba en platform.py; aislar aqui los enlaces
+# permite conservar estas regresiones incluso en un host no soportado.
+cat >> "$fixture_repo/lib/platform.sh" <<'MOCK'
+dotfiles_platform_preflight() { :; }
+MOCK
+
 fail() {
     printf '[error] Prueba de enlaces: %s\n' "$1" >&2
     exit 1

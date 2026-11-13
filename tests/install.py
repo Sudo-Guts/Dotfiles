@@ -26,6 +26,11 @@ class InstallationTests(unittest.TestCase):
         self.env.update(HOME=str(self.base / "home with spaces"), XDG_CONFIG_HOME=str(self.base / "config"), XDG_STATE_HOME=str(self.base / "state"), XDG_DATA_HOME=str(self.base / "data"), XDG_CACHE_HOME=str(self.base / "cache"), XDG_CURRENT_DESKTOP="XFCE", DOTFILES_ALLOW_ROOT="1", DOTFILES_UPDATE="0", PATH=f"{self.bin}:{os.environ['PATH']}")
         self.module_log = self.base / "modules.log"
         self.env["TEST_MODULE_LOG"] = str(self.module_log)
+        self.release = self.base / "os-release"
+        self.release.write_text('ID=ubuntu\nNAME="Ubuntu"\nVERSION_ID="24.04"\nVERSION_CODENAME=noble\n')
+        self.executable("apt-get", "exit 97\n")
+        self.executable("dpkg-query", "exit 97\n")
+        self.executable("sudo", "exit 97\n")
 
     def invoke(self, command, check=True, **environment):
         result = subprocess.run(command, cwd=ROOT, env=self.env | environment, text=True, capture_output=True)
@@ -49,6 +54,8 @@ class InstallationTests(unittest.TestCase):
         repo.mkdir()
         for name in ("bin", "lib", "setup", "config"):
             shutil.copytree(ROOT / name, repo / name)
+        platform = repo / "lib/platform.sh"
+        platform.write_text(platform.read_text().replace("/etc/os-release", str(self.release)).replace("/usr/lib/os-release", str(self.base / "no-os-release")))
         if stubs:
             for module in (repo / "setup/modules").glob("*.sh"):
                 module.write_text('#!/usr/bin/env bash\nset -eu\nname="${0##*/}"\nprintf "%s\\n" "${name%.sh}" >> "$TEST_MODULE_LOG"\n[[ "${TEST_FAIL_MODULE:-}" != "${name%.sh}" ]]\n')
@@ -57,6 +64,14 @@ class InstallationTests(unittest.TestCase):
         self.git(repo, "add", ".")
         self.git(repo, "commit", "--quiet", "-m", "fixture")
         return repo
+
+    def test_debian_keeps_core_installation(self):
+        self.release.write_text('ID=debian\nNAME="Debian GNU/Linux"\nVERSION_ID="12"\n')
+        repo = self.repository()
+        result, modules = self.install(repo, "--with-avr")
+        self.assertIn("ID=debian", result.stdout)
+        self.assertTrue({"cpp", "python", "hdl", "avr"}.issubset(modules))
+        self.assertEqual(self.state()["schema"], "4")
 
     def install(self, repo, *options, **environment):
         self.module_log.unlink(missing_ok=True)
@@ -125,6 +140,13 @@ class InstallationTests(unittest.TestCase):
         self.assertEqual(self.state()["applied_commit"], self.git(repo, "rev-parse", "HEAD").stdout.strip())
 
     def test_update_uses_new_commit_and_keeps_options(self):
+        self.check_update_from_upstream()
+
+    def test_debian_update_keeps_persistent_options(self):
+        self.release.write_text("ID=debian\nVERSION_ID=12\n")
+        self.check_update_from_upstream()
+
+    def check_update_from_upstream(self):
         repo = self.repository()
         self.install(repo, "--with-apache", "--with-riscv")
         self.git(repo, "switch", "--quiet", "-c", "upstream")
@@ -229,13 +251,19 @@ fi
                 self.assertEqual(log.read_text().splitlines(), expected)
 
     def test_docker_reuses_key_and_repository(self):
+        self.check_docker_repository("ID=debian\nVERSION_CODENAME=bookworm\n", "debian", "bookworm")
+
+    def test_docker_preserves_ubuntu_codename_priority(self):
+        self.check_docker_repository("ID=ubuntu\nVERSION_CODENAME=ignored\nUBUNTU_CODENAME=noble\n", "ubuntu", "noble")
+
+    def check_docker_repository(self, release_contents, distro, codename):
         repo = self.repository(stubs=False)
         apt_root = self.base / "apt"
         (apt_root / "sources.list.d").mkdir(parents=True)
         release = self.base / "os-release"
-        release.write_text("ID=debian\nVERSION_CODENAME=bookworm\n")
+        release.write_text(release_contents)
         module = repo / "setup/modules/docker.sh"
-        module.write_text(module.read_text().replace("/etc/apt", str(apt_root)).replace("/etc/os-release", str(release)).replace("/run/systemd/system", str(self.base / "no-systemd")))
+        module.write_text(module.read_text().replace("/etc/apt", str(apt_root)).replace("/run/systemd/system", str(self.base / "no-systemd")))
         with (repo / "lib/common.sh").open("a") as file:
             file.write('\n# Solo en la copia de prueba; todos los destinos están aislados.\nas_root() { "$@"; }\n')
         self.executable("dpkg-query", "printf 'install ok installed\\n'\n")
@@ -252,6 +280,8 @@ fi
         self.assertEqual(curl_log.read_text().splitlines(), ["download"])
         self.assertEqual(source.stat().st_mtime_ns, initial)
         self.assertEqual(apt_log.read_text().splitlines().count("update"), 1)
+        self.assertIn(f"https://download.docker.com/linux/{distro}", source.read_text())
+        self.assertIn(f"Suites: {codename}\n", source.read_text())
 
 
 if __name__ == "__main__":

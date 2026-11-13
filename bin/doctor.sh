@@ -2,6 +2,16 @@
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib/common.sh"
 failures=0
 pending() { log "$*"; failures=$((failures+1)); }
+source "$DOTFILES_ROOT/lib/platform.sh"
+if dotfiles_platform_detect; then
+    dotfiles_platform_report
+    case "$DOTFILES_PLATFORM_PACKAGE_FAMILY" in
+        pacman) log "Backend Pacman pendiente; install/update estan bloqueados. El diagnostico sigue disponible." ;;
+        unknown) log "Distribucion no soportada; solo se ejecuta el diagnostico existente." ;;
+    esac
+else
+    pending "$DOTFILES_PLATFORM_ERROR"
+fi
 check_command() {
     local binary
     binary="$(command -v "$1" 2>/dev/null || true)"

@@ -38,16 +38,12 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../../lib/common.sh"
 # Distribution Detection
 # ============================================================
 
-[[ -r /etc/os-release ]] ||
-    die "No se encontró /etc/os-release."
+source "$DOTFILES_ROOT/lib/platform.sh"
+dotfiles_platform_detect || die "$DOTFILES_PLATFORM_ERROR"
 
-source /etc/os-release
-
-
-case "$ID" in
-
+case "$DOTFILES_PLATFORM_ID" in
     ubuntu|debian)
-        distro="$ID"
+        distro="$DOTFILES_PLATFORM_ID"
         ;;
 
     *)
@@ -65,9 +61,9 @@ esac
 # Debian utiliza VERSION_CODENAME.
 
 if [[ "$distro" == "ubuntu" ]]; then
-    codename="${UBUNTU_CODENAME:-${VERSION_CODENAME:-}}"
+    codename="${DOTFILES_PLATFORM_UBUNTU_CODENAME:-$DOTFILES_PLATFORM_VERSION_CODENAME}"
 else
-    codename="${VERSION_CODENAME:-}"
+    codename="$DOTFILES_PLATFORM_VERSION_CODENAME"
 fi
 
 [[ -n "$codename" ]] ||

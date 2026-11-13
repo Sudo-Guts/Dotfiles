@@ -74,6 +74,13 @@ if (( EUID == 0 )) && [[ "${DOTFILES_ALLOW_ROOT:-0}" != 1 ]]; then
     die "Ejecuta dotfiles como usuario normal, sin sudo."
 fi
 
+# Validar antes de crear bloqueos, respaldos, enlaces o sincronizar Git.
+source "$DOTFILES_ROOT/lib/platform.sh"
+dotfiles_platform_preflight "$command_name"
+if (( change_shell )); then
+    command -v chsh >/dev/null 2>&1 || die "Preflight install: falta chsh para --change-shell."
+fi
+
 source "$DOTFILES_ROOT/lib/links.sh"
 if [[ "$command_name" == link ]]; then
     dotfiles_links_apply
