@@ -22,6 +22,7 @@ bash "$repo/tests/gnome.sh"
 bash "$repo/tests/links.sh"
 python3 "$repo/tests/platform.py"
 python3 "$repo/tests/packages.py"
+python3 "$repo/tests/pacman.py"
 python3 "$repo/tests/install.py"
 
 if command -v zsh >/dev/null; then

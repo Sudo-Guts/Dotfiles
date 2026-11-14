@@ -280,16 +280,24 @@ exit "$result_code"'''
             self.assertIn("unknown-module", result.stderr)
             self.assertEqual(self.snapshot(), before)
 
-    def test_arch_and_unknown_backends_reject_every_public_interface(self):
-        for distro in ("arch", "unknown", "linuxmint"):
+    def test_unknown_backends_reject_every_public_interface(self):
+        for distro in ("unknown", "linuxmint"):
             self.release.write_text(f'ID={distro}\nID_LIKE="ubuntu debian"\n')
             for interface, argument in (("apt_install", "alpha"), ("dotfiles_packages_install", "alpha"), ("apt_install_module", "base"), ("dotfiles_packages_install_module", "base"), ("dotfiles_packages_install_module", "nvim-tools")):
                 with self.subTest(distro=distro, interface=interface, argument=argument):
                     before = self.snapshot()
                     result = self.call(interface, argument, DOTFILES_PLATFORM_PACKAGE_FAMILY="apt")
                     self.assertNotEqual(result.returncode, 0)
-                    self.assertIn("Pacman" if distro == "arch" else distro, result.stderr)
+                    self.assertIn(distro, result.stderr)
                     self.assertEqual(self.snapshot(), before)
+
+    def test_arch_rejects_historical_apt_names_before_any_manager(self):
+        self.release.write_text("ID=arch\n")
+        before = self.snapshot()
+        result = self.call("apt_install", "build-essential", DOTFILES_PLATFORM_PACKAGE_FAMILY="apt")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("no se envian nombres APT a Pacman", result.stderr)
+        self.assertEqual(self.snapshot(), before)
 
     def test_riscv_system_mode_preserves_package_contract(self):
         result = self.shell('bash "$1/setup/modules/riscv.sh"')

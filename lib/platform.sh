@@ -139,7 +139,7 @@ dotfiles_platform_preflight() {
     esac
     if [[ "$operation" != link ]]; then
         if [[ "$DOTFILES_PLATFORM_PACKAGE_FAMILY" == pacman ]]; then
-            die "Arch Linux reconocido: install y update estan detenidos porque el backend Pacman se implementara en la siguiente fase. No se aplicaron cambios."
+            die "Arch Linux reconocido: backend Pacman disponible, pero install/update Core siguen bloqueados: GHDL es obligatorio y su proveedor no esta aprobado y validado. No se aplicaron cambios."
         fi
         case "$DOTFILES_PLATFORM_ARCH" in
             x86_64|aarch64|arm64) ;;

@@ -198,7 +198,7 @@ if dotfiles_platform_detect "$2.missing" "$3.missing" "$4"; then exit 1; fi
                     else:
                         state.unlink(missing_ok=True)
                     options = ("--with-docker", "--migrate-state", "--change-shell") if operation == "install" else ("--with-avr",)
-                    self.assert_rejected_without_changes(repo, operation, "backend Pacman", *options)
+                    self.assert_rejected_without_changes(repo, operation, "GHDL es obligatorio", *options)
 
     def test_unknown_derivative_rejects_all_mutations(self):
         self.release.write_text('ID=linuxmint\nID_LIKE="ubuntu debian"\n')

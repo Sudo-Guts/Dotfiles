@@ -16,7 +16,7 @@
 #   - PATH del entorno de instalación
 #   - Manejo de errores
 #   - Ejecución privilegiada mediante sudo
-#   - Instalación idempotente de paquetes APT
+#   - Instalacion idempotente de paquetes APT/Pacman
 #   - Descargas HTTP
 #   - Comparación de versiones
 #   - Sincronización de repositorios Git
@@ -115,11 +115,12 @@ require_command() {
 # Package Interface
 # ============================================================
 
-# Las interfaces historicas delegan en la fachada sin duplicar el backend.
+# Los nombres APT historicos no se pueden despachar a otros gestores.
 source "$DOTFILES_ROOT/lib/packages.sh"
 
 apt_install() {
-    dotfiles_packages_install "$@"
+    dotfiles_packages_require_backend apt
+    dotfiles_packages_apt_install "$@"
 }
 
 apt_install_module() {

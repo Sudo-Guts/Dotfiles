@@ -27,6 +27,8 @@ en `feature/stm32-dfu` (`abdc2ba`); esta fase no incorpora su código. El campo
 | `lib/common.sh` | Utilidades generales y wrappers historicos de paquetes |
 | `lib/packages.sh` | Fachada de paquetes y validacion del backend |
 | `lib/packages/apt.sh` | Consulta dpkg, instalacion APT y marcadores por ejecucion |
+| `lib/packages/pacman.sh` | Consulta dependencias locales e instala faltantes sin refrescar la BD |
+| `setup/packages/arch.conf` | Paquetes, comandos y disponibilidad Arch; sin duplicar el grafo |
 | `setup/` | Instaladores, versiones y preparación de Neovim |
 
 `tests/` contiene las comprobaciones auxiliares. Esta fase añade pruebas de
@@ -40,9 +42,12 @@ nombre, selección (`core`, `gnome` u `optional`), dependencias, comandos de
 ni `eval`. Los instaladores consumen sus paquetes con `apt_install_module`.
 
 Ese nombre se conserva como wrapper de `dotfiles_packages_install_module`.
-La interfaz comun, las reglas APT y sus pruebas se describen en
-[Gestion de paquetes](PACKAGES.md). El catalogo sigue declarando paquetes APT;
-esta separacion no incorpora todavia Pacman ni equivalencias Arch.
+La interfaz comun, las reglas APT/Pacman y sus pruebas se describen en
+[Gestion de paquetes](PACKAGES.md). El manifiesto principal conserva sus
+datos APT y Arch declara sus diferencias en `setup/packages/arch.conf`.
+Core en Arch sigue bloqueado por GHDL obligatorio sin proveedor aprobado y
+validado. El inventario siguiente describe la ruta Ubuntu/Debian existente;
+la matriz Arch y sus limitaciones estan en la documentacion de paquetes.
 
 Las dependencias deben aparecer antes que sus consumidores y estar activas.
 El orden explícito evita ciclos y mantiene `nvim-tools` al final, después de

@@ -49,11 +49,16 @@ selección. El inventario y las reglas de mantenimiento se explican en
 ## Instalación
 
 El preflight identifica Arch, Ubuntu y Debian antes de escribir estado o enlaces
-y antes de sincronizar Git. Esta fase conserva la instalacion APT: en Arch,
-`install` y `update` se detienen hasta disponer del backend Pacman; `link` sigue
-disponible con sus respaldos. Las derivadas no se habilitan mediante `ID_LIKE`.
+y antes de sincronizar Git. APT conserva la instalacion Ubuntu/Debian. El
+backend Pacman y el catalogo Arch estan implementados con pruebas simuladas;
+`install` y `update` Core en Arch siguen bloqueados porque GHDL es obligatorio
+y su proveedor no esta aprobado y validado. `link` sigue disponible con sus
+respaldos. Las derivadas no se habilitan mediante `ID_LIKE`.
 Consulta [plataforma y preflight](setup/PLATFORM.md) para los requisitos,
-la matriz de comandos y las pruebas.
+la matriz de comandos y las pruebas; [gestion de paquetes](setup/PACKAGES.md)
+explica las equivalencias, los pendientes y la politica Pacman. El usuario
+mantiene Arch actualizado explicitamente; el bootstrap solo pide paquetes
+faltantes, sin refrescar la base ni actualizar el sistema.
 
 Requiere Git e Internet. Ejecuta el instalador como usuario normal; puede pedir permisos para instalar paquetes.
 

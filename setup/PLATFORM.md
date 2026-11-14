@@ -44,9 +44,9 @@ Referencia del formato:
 
 | Comando | Ubuntu/Debian | Arch | ID desconocido o derivada |
 |---|---|---|---|
-| `install`, `update` | Preflight APT y flujo existente | Rechazo antes de escribir o sincronizar Git | Rechazo antes de escribir |
+| `install`, `update` | Preflight APT y flujo existente | Rechazo temprano por GHDL obligatorio sin proveedor aprobado y validado | Rechazo antes de escribir |
 | `link` | Enlaces y respaldos existentes | Permitido sin backend de paquetes | Rechazado |
-| `doctor` | Informa plataforma y conserva diagnostico | Informa backend pendiente y conserva diagnostico | Informa falta de soporte y conserva diagnostico |
+| `doctor` | Informa plataforma y conserva diagnostico | Usa comandos Arch y registra modulos pendientes | Informa falta de soporte y conserva diagnostico |
 | `help`, `--help` | Sin requisito de plataforma | Sin requisito de plataforma | Sin requisito de plataforma |
 | `check` | Comprobaciones existentes y nuevas | No exige backend | No exige backend |
 
@@ -109,12 +109,15 @@ No sustituyen una instalacion real ni certifican paquetes disponibles.
 
 ## Limites y siguiente fase
 
-No hay backend Pacman, equivalencias nuevas, proveedor GHDL, perfiles ni
-configuracion de escritorio. No se modifican Neovim, toolchains, shell, temas
-ni almacenamiento.
+El backend Pacman y las equivalencias Arch estan implementados y probados con
+simulaciones; consulta [gestion de paquetes](PACKAGES.md). No hay proveedor
+GHDL aprobado y validado. Neovim, toolchains, shell, temas y almacenamiento
+conservan su configuracion.
 
-Antes de habilitar Arch se deben resolver la politica de actualizacion
-coherente del sistema, los datos por plataforma, los comandos equivalentes,
-el proveedor GHDL y las pruebas de instalacion/repeticion/recuperacion con
-gestores reales. No se debe resolver esta espera ejecutando APT en Arch
-ni introduciendo actualizaciones parciales con Pacman.
+Antes de habilitar Core en Arch se debe resolver GHDL y validar todos los
+modulos/proveedores seleccionados antes de escribir estado o crear enlaces.
+Faltan pruebas de instalacion/repeticion/recuperacion y herramientas reales.
+Docker y RISC-V conservan sus bloqueos por adaptacion pendiente. La politica
+Pacman deja el mantenimiento completo al usuario y solo solicita faltantes.
+No se resuelve esta espera ejecutando APT en Arch ni introduciendo
+actualizaciones parciales con Pacman.

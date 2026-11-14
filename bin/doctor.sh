@@ -6,7 +6,7 @@ source "$DOTFILES_ROOT/lib/platform.sh"
 if dotfiles_platform_detect; then
     dotfiles_platform_report
     case "$DOTFILES_PLATFORM_PACKAGE_FAMILY" in
-        pacman) log "Backend Pacman pendiente; install/update estan bloqueados. El diagnostico sigue disponible." ;;
+        pacman) log "Backend Pacman disponible; install/update Core bloqueados por el proveedor obligatorio de GHDL. El diagnostico sigue disponible." ;;
         unknown) log "Distribucion no soportada; solo se ejecuta el diagnostico existente." ;;
     esac
 else
@@ -28,7 +28,15 @@ dotfiles_state_load
 source "$DOTFILES_ROOT/lib/modules.sh"
 dotfiles_modules_select
 for module in "${DOTFILES_SELECTED_MODULES[@]}"; do
-    for cmd in ${DOTFILES_MODULE_COMMANDS[$module]}; do
+    commands="${DOTFILES_MODULE_COMMANDS[$module]}"
+    if [[ "$DOTFILES_PLATFORM_PACKAGE_FAMILY" == pacman ]]; then
+        dotfiles_packages_resolve_module "$module"
+        commands="$DOTFILES_RESOLVED_COMMANDS"
+        if [[ "$DOTFILES_RESOLVED_STATE" == pending ]]; then
+            pending "Modulo Arch pendiente: $module. $DOTFILES_RESOLVED_REASON"
+        fi
+    fi
+    for cmd in $commands; do
         fallback=""
         if [[ "$cmd" == *:* ]]; then fallback="${cmd#*:}"; cmd="${cmd%%:*}"; fi
         check_command "$cmd" "$fallback"
